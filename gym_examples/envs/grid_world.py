@@ -15,8 +15,8 @@ class GridWorldEnv(gym.Env):
         # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
         self.observation_space = spaces.Dict(
             {
-                "agent": spaces.MultiDiscrete([size, size]),
-                "target": spaces.MultiDiscrete([size, size]),
+                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
+                "target": spaces.Box(0, size - 1, shape=(2,), dtype=int),
             }
         )
 
@@ -65,7 +65,7 @@ class GridWorldEnv(gym.Env):
         # We will sample the target's location randomly until it does not coincide with the agent's location
         self._target_location = self._agent_location
         while np.array_equal(self._target_location, self._agent_location):
-            self._target_location = self.np_random.randint(0, self.size, size=2)
+            self._target_location = self.np_random.integers(0, self.size, size=2)
 
         observation = self._get_obs()
         info = self._get_info()
