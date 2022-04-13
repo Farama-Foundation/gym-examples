@@ -9,4 +9,4 @@ class RelativePosition(gym.ObservationWrapper):
         self._observation_space = Box(shape=(2,), low=-np.inf, high=np.inf)
 
     def observation(self, obs):
-        return obs["target_position"] - obs["agent_position"]
+        return obs["target"] - obs["agent"]
