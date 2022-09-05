@@ -74,7 +74,9 @@ class GridWorldEnv(gym.Env):
 
         observation = self._get_obs()
         info = self._get_info()
-        self._render_frame()
+
+        if self.render_mode == "human":
+            self._render_frame()
 
         return observation, info
 
@@ -90,7 +92,9 @@ class GridWorldEnv(gym.Env):
         reward = 1 if terminated else 0  # Binary sparse rewards
         observation = self._get_obs()
         info = self._get_info()
-        self._render_frame()
+
+        if self.render_mode == "human":
+            self._render_frame()
 
         return observation, reward, terminated, False, info
 
