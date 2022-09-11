@@ -1,12 +1,11 @@
 import gym
 from gym import spaces
-from gym.utils.renderer import Renderer
 import pygame
 import numpy as np
 
 
 class GridWorldEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array", "single_rgb_array"], "render_fps": 4}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode=None, size=5):
         self.size = size  # The size of the square grid
@@ -38,7 +37,6 @@ class GridWorldEnv(gym.Env):
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
-        self._renderer = Renderer(self.render_mode, self._render_frame)
 
         """
         If human-rendering is used, `self.window` will be a reference
@@ -60,7 +58,7 @@ class GridWorldEnv(gym.Env):
             )
         }
 
-    def reset(self, seed=None, return_info=False, options=None):
+    def reset(self, seed=None, options=None):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
@@ -70,15 +68,17 @@ class GridWorldEnv(gym.Env):
         # We will sample the target's location randomly until it does not coincide with the agent's location
         self._target_location = self._agent_location
         while np.array_equal(self._target_location, self._agent_location):
-            self._target_location = self.np_random.integers(0, self.size, size=2, dtype=int)
+            self._target_location = self.np_random.integers(
+                0, self.size, size=2, dtype=int
+            )
 
         observation = self._get_obs()
         info = self._get_info()
 
-        self._renderer.reset()
-        self._renderer.render_step()
+        if self.render_mode == "human":
+            self._render_frame()
 
-        return (observation, info) if return_info else observation
+        return observation, info
 
     def step(self, action):
         # Map the action (element of {0,1,2,3}) to the direction we walk in
@@ -88,26 +88,26 @@ class GridWorldEnv(gym.Env):
             self._agent_location + direction, 0, self.size - 1
         )
         # An episode is done iff the agent has reached the target
-        done = np.array_equal(self._agent_location, self._target_location)
-        reward = 1 if done else 0  # Binary sparse rewards
+        terminated = np.array_equal(self._agent_location, self._target_location)
+        reward = 1 if terminated else 0  # Binary sparse rewards
         observation = self._get_obs()
         info = self._get_info()
 
-        self._renderer.render_step()
+        if self.render_mode == "human":
+            self._render_frame()
 
-        return observation, reward, done, info
+        return observation, reward, terminated, False, info
 
     def render(self):
-        return self._renderer.get_renders()
+        if self.render_mode == "rgb_array":
+            return self._render_frame()
 
-    def _render_frame(self, mode):
-        assert mode is not None
-
-        if self.window is None and mode == "human":
+    def _render_frame(self):
+        if self.window is None and self.render_mode == "human":
             pygame.init()
             pygame.display.init()
             self.window = pygame.display.set_mode((self.window_size, self.window_size))
-        if self.clock is None and mode == "human":
+        if self.clock is None and self.render_mode == "human":
             self.clock = pygame.time.Clock()
 
         canvas = pygame.Surface((self.window_size, self.window_size))
@@ -150,7 +150,7 @@ class GridWorldEnv(gym.Env):
                 width=3,
             )
 
-        if mode == "human":
+        if self.render_mode == "human":
             # The following line copies our drawings from `canvas` to the visible window
             self.window.blit(canvas, canvas.get_rect())
             pygame.event.pump()
