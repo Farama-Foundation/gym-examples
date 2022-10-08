@@ -90,7 +90,7 @@ class ReachEnv(gym.GoalEnv):
                 1.0 * np.random.randint(2, size=self.n_dim) - 0.5
             )
         self.size = 1
-        self.max_distance = np.sqrt(2*(self.size)**2)
+        self.max_distance = np.sqrt(8*(self.size)**2)
         self._collision = False
         """
         If human-rendering is used, `self.window` will be a reference
@@ -248,17 +248,19 @@ class ReachEnv(gym.GoalEnv):
                 assert reward == env.compute_reward(
                     ob['achieved_goal'], ob['goal'], info)
         """
-        distance = np.linalg.norm(achieved_goal-desired_goal, axis=-1)
+        distance = np.linalg.norm(
+            np.array(achieved_goal)-np.array(desired_goal), axis=-1)
         goal_reached = distance < self.goal_distance
         if isinstance(info, list):
             collision = np.array([i["collision"] for i in info])
+            reward = (np.ones((len(achieved_goal),)) * self.step_reward +
+                      collision * self.collision_reward)
         else:
             collision = info["collision"]
-        reward = (np.ones((achieved_goal.shape[0],)) * self.step_reward +
-                  collision * self.collision_reward
-                  )
+            reward = self.step_reward + collision * self.collision_reward
+
         if self.reward_shaping:
-            reward += (1 - distance/self.max_distance) * self.goal_reward
+            reward += (1 - np.tanh(distance)) * self.goal_reward
         else:
             reward += goal_reached * self.goal_reward
         return reward
@@ -288,7 +290,8 @@ class ReachEnv(gym.GoalEnv):
                 assert done == env.compute_done(
                     ob['achieved_goal'], ob['goal'], info)
         """
-        distance = np.linalg.norm(achieved_goal-desired_goal, axis=-1)
+        distance = np.linalg.norm(
+            np.array(achieved_goal)-np.array(desired_goal), axis=-1)
         goal_reached = distance < self.goal_distance
         if self.done_on_collision:
             if isinstance(info, list):
@@ -317,19 +320,20 @@ class ReachEnv(gym.GoalEnv):
 
         canvas = pygame.Surface((self.window_size, self.window_size))
         canvas.fill((255, 255, 255))
-        pix_square_size = (
-            self.window_size / (2*self.size)
-        )  # The size of a single grid square in pixels
-        target = [self._target_location[0] + self.size,
-                  self._target_location[1] + self.size]
-        agent = [self._agent_location[0] + self.size,
-                 self._agent_location[1] + self.size]
+        pix_square_size = 10
+        target = (1/(2*self.size) *
+                  np.array([self._target_location[0] + self.size,
+                            self._target_location[1] + self.size]))
+        agent = (1/(2*self.size) *
+                 np.array([self._agent_location[0] + self.size,
+                           self._agent_location[1] + self.size]))
         # First we draw the target
         pygame.draw.rect(
             canvas,
             (255, 0, 0),
             pygame.Rect(
-                pix_square_size * target,
+                self.window_size * np.array(target) -
+                np.array([pix_square_size/2, pix_square_size/2]),
                 (pix_square_size, pix_square_size),
             ),
         )
@@ -337,8 +341,8 @@ class ReachEnv(gym.GoalEnv):
         pygame.draw.circle(
             canvas,
             (0, 0, 255),
-            (agent + 0.5) * pix_square_size,
-            pix_square_size / 3,
+            self.window_size * np.array(agent),
+            pix_square_size / 2,
         )
 
         if self.render_mode == "human":
