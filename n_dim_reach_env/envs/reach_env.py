@@ -211,11 +211,11 @@ class ReachEnv(gym.GoalEnv):
         info = self._get_info()
         reward = self.compute_reward(
             achieved_goal=observation["achieved_goal"],
-            desired_goal=observation["achieved_goal"],
+            desired_goal=observation["desired_goal"],
             info=info)
         done = self.compute_done(
             achieved_goal=observation["achieved_goal"],
-            desired_goal=observation["achieved_goal"],
+            desired_goal=observation["desired_goal"],
             info=info)
 
         if self.render_mode == "human":
