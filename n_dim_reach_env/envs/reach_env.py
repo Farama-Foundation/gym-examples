@@ -117,7 +117,7 @@ class ReachEnv(gym.GoalEnv):
     def _get_info(self) -> Dict:
         return {
             "distance": np.linalg.norm(
-                self._agent_location - self._target_location, ord=2
+                self._agent_location - self._target_location
             ),
             "goal_reached": self._get_success(
                 self._get_obs()["achieved_goal"],
@@ -137,7 +137,7 @@ class ReachEnv(gym.GoalEnv):
             True if goal was reached, false otherwise.
         """
         return np.linalg.norm(
-                achieved_goal - desired_goal, ord=2
+                achieved_goal - desired_goal
             ) < self.goal_distance
 
     def _get_done(self,
@@ -162,7 +162,7 @@ class ReachEnv(gym.GoalEnv):
               options: Optional[Dict] = None) -> Tuple[np.ndarray, Dict]:
         """Reset the environment."""
         # We need the following line to seed self.np_random
-        super().reset(seed=seed)
+        super().reset()
         self._collision = False
         # Choose the agent's and goal location.
         if self.randomize_env:
@@ -248,7 +248,7 @@ class ReachEnv(gym.GoalEnv):
                 assert reward == env.compute_reward(
                     ob['achieved_goal'], ob['goal'], info)
         """
-        distance = np.linalg.norm(achieved_goal, desired_goal, axis=-1, ord=2)
+        distance = np.linalg.norm(achieved_goal-desired_goal, axis=-1)
         goal_reached = distance < self.goal_distance
         if isinstance(info, list):
             collision = np.array([i["collision"] for i in info])
@@ -288,7 +288,7 @@ class ReachEnv(gym.GoalEnv):
                 assert done == env.compute_done(
                     ob['achieved_goal'], ob['goal'], info)
         """
-        distance = np.linalg.norm(achieved_goal, desired_goal, axis=-1, ord=2)
+        distance = np.linalg.norm(achieved_goal-desired_goal, axis=-1)
         goal_reached = distance < self.goal_distance
         if self.done_on_collision:
             if isinstance(info, list):
