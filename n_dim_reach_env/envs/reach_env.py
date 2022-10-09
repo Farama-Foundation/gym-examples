@@ -67,18 +67,18 @@ class ReachEnv(gym.GoalEnv):
         self.observation_space = spaces.Dict(
             {
                 "observation": spaces.Box(-1, 1,
-                                          shape=(self.n_dim,), dtype=float,
+                                          shape=(self.n_dim,), dtype='float32',
                                           seed=self.rnd_seed),
                 "achieved_goal": spaces.Box(-1, 1,
-                                            shape=(self.n_dim,), dtype=float,
+                                            shape=(self.n_dim,), dtype='float32',
                                             seed=self.rnd_seed),
                 "desired_goal": spaces.Box(-1, 1,
-                                           shape=(self.n_dim,), dtype=float,
+                                           shape=(self.n_dim,), dtype='float32',
                                            seed=self.rnd_seed),
             }
         )
         self.action_space = spaces.Box(-max_action, max_action,
-                                       shape=(self.n_dim,), dtype=float,
+                                       shape=(self.n_dim,), dtype='float32',
                                        seed=self.rnd_seed)
         self._agent_location = np.zeros((self.n_dim,))
         self._target_location = np.zeros((self.n_dim,))
@@ -86,11 +86,11 @@ class ReachEnv(gym.GoalEnv):
             self.start_state = np.zeros((self.n_dim,))
             # We choose random values of -0.5 or 0.5 per dimension.
             np.random.seed(seed)
-            self._target_location = (
+            self._target_location = float(
                 1.0 * np.random.randint(2, size=self.n_dim) - 0.5
             )
-        self.size = 1
-        self.max_distance = np.sqrt(8*(self.size)**2)
+        self.size = float(1.0)
+        self.max_distance = np.sqrt(8*(self.size)**2, dtype='float32')
         self._collision = False
         """
         If human-rendering is used, `self.window` will be a reference
@@ -176,12 +176,11 @@ class ReachEnv(gym.GoalEnv):
             self._agent_location = self.start_state
 
         observation = self._get_obs()
-        info = self._get_info()
 
         if self.render_mode == "human":
             self._render_frame()
 
-        return observation, info
+        return observation
 
     def step(self,
              action: np.ndarray) -> Tuple[np.ndarray, float, bool, Dict]:
@@ -260,7 +259,7 @@ class ReachEnv(gym.GoalEnv):
             reward = self.step_reward + collision * self.collision_reward
 
         if self.reward_shaping:
-            reward += (1 - np.tanh(distance)) * self.goal_reward
+            reward += (float(1.0) - np.tanh(distance)) * self.goal_reward
         else:
             reward += goal_reached * self.goal_reward
         return reward

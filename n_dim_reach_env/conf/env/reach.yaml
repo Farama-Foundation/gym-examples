@@ -1,0 +1,12 @@
+id: n_dim_reach_env/ReachEnv-v0
+n_dim: 6
+max_action: 0.05
+goal_distance: 0.01
+done_on_collision: False
+randomize_env: True
+collision_reward: -1.0
+goal_reward: 1.0
+step_reward: -1.0
+reward_shaping: True
+render_mode: null
+seed: 42

@@ -15,11 +15,11 @@ env = gym.make("n_dim_reach_env/ReachEnv-v0",
                render_mode="human",
                seed=42)
 env = TimeLimit(env, 1000)
-obs, info = env.reset()
+obs = env.reset()
 
 for i in range(int(1e6)):
     a = env.action_space.sample()
     o, r, d, info = env.step(a)
     if d:
-        o, info = env.reset()
+        o = env.reset()
 print("done")
