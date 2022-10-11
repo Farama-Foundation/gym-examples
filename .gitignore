@@ -51,3 +51,8 @@ docs/_build/
 
 # PyCharm
 .idea
+
+# Logging and Wandb
+logs/
+runs/
+wandb/
