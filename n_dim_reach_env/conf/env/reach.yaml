@@ -1,4 +1,4 @@
-id: n_dim_reach_env/ReachEnv-v0
+id: ReachEnv-v0
 n_dim: 6
 max_action: 0.05
 goal_distance: 0.01

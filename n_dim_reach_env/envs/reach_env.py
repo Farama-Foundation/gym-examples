@@ -67,13 +67,16 @@ class ReachEnv(gym.GoalEnv):
         self.observation_space = spaces.Dict(
             {
                 "observation": spaces.Box(-1, 1,
-                                          shape=(self.n_dim,), dtype='float32',
+                                          shape=(self.n_dim,),
+                                          dtype='float32',
                                           seed=self.rnd_seed),
                 "achieved_goal": spaces.Box(-1, 1,
-                                            shape=(self.n_dim,), dtype='float32',
+                                            shape=(self.n_dim,),
+                                            dtype='float32',
                                             seed=self.rnd_seed),
                 "desired_goal": spaces.Box(-1, 1,
-                                           shape=(self.n_dim,), dtype='float32',
+                                           shape=(self.n_dim,),
+                                           dtype='float32',
                                            seed=self.rnd_seed),
             }
         )
@@ -106,6 +109,8 @@ class ReachEnv(gym.GoalEnv):
         self.render_mode = render_mode
         self.window = None
         self.clock = None
+        self._goal_reached_counter = 0
+        self._collision_counter = 0
 
     def _get_obs(self) -> Dict:
         return {
@@ -119,10 +124,9 @@ class ReachEnv(gym.GoalEnv):
             "distance": np.linalg.norm(
                 self._agent_location - self._target_location
             ),
-            "goal_reached": self._get_success(
-                self._get_obs()["achieved_goal"],
-                self._get_obs()["desired_goal"]),
-            "collision": self._collision
+            "collision": self._collision,
+            "n_goal_reached": self._goal_reached_counter,
+            "n_collision": self._collision_counter
         }
 
     def _get_success(self,
@@ -179,7 +183,8 @@ class ReachEnv(gym.GoalEnv):
 
         if self.render_mode == "human":
             self._render_frame()
-
+        self._goal_reached_counter = 0
+        self._collision_counter = 0
         return observation
 
     def step(self,
@@ -205,8 +210,12 @@ class ReachEnv(gym.GoalEnv):
         next_pos = self._agent_location + action
         if np.any(np.abs(next_pos) > self.size):
             self._collision = True
+            self._collision_counter += 1
         self._agent_location = np.clip(next_pos, -self.size, self.size)
         observation = self._get_obs()
+        goal_reached = self._get_success(self._get_obs()["achieved_goal"],
+                                         self._get_obs()["desired_goal"])
+        self._goal_reached_counter += int(goal_reached)
         info = self._get_info()
         reward = self.compute_reward(
             achieved_goal=observation["achieved_goal"],
