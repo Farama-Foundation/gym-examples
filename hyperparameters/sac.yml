@@ -1,0 +1,47 @@
+ReachEnv-v0:
+  env_wrapper:
+    - gym.wrappers.TimeLimit:
+        max_episode_steps: 1000
+    - stable_baselines3.common.monitor.Monitor
+  #vec_env_wrapper: 
+  #  - stable_baselines3.common.vec_env.VecMonitor:
+  #      info_keywords: ['n_goal_reached', 'n_collision']
+  #callback: stable_baselines3.common.callbacks.CheckpointCallback
+  n_envs: 8
+  n_timesteps: 1000000
+  policy: 'MultiInputPolicy'
+  learning_rate: !!float 3e-4
+  buffer_size: 1000000
+  batch_size: 128
+  ent_coef: 'auto'
+  train_freq: 128
+  gradient_steps: 128
+  learning_starts: 10000
+  policy_kwargs: "dict(net_arch=[256, 256])"
+  gamma: 0.99
+  tau: 0.005
+  action_noise: null
+  target_entropy: auto
+  use_sde: false
+  sde_sample_freq: -1
+  target_update_interval: 1
+  use_sde_at_warmup: false
+
+BipedalWalkerHardcore-v3:
+  env_wrapper:
+    - gym.wrappers.TimeLimit:
+        max_episode_steps: 1000
+    - n_dim_reach_env.wrappers.PrintingWrapper
+    - stable_baselines3.common.monitor.Monitor
+  n_timesteps: !!float 1e7
+  policy: 'MlpPolicy'
+  learning_rate: lin_7.3e-4
+  buffer_size: 1000000
+  batch_size: 256
+  ent_coef: 0.005
+  gamma: 0.99
+  tau: 0.01
+  train_freq: 1
+  gradient_steps: 1
+  learning_starts: 10000
+  policy_kwargs: "dict(net_arch=[256, 256])"

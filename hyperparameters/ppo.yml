@@ -1,0 +1,13 @@
+ReachEnv-v0:
+  n_envs: 8
+  n_timesteps: !!float 1e6
+  policy: 'MultiInputPolicy'
+  n_steps: 1024
+  gae_lambda: 0.95
+  gamma: 0.9
+  n_epochs: 100
+  ent_coef: 0.0
+  learning_rate: !!float 1e-3
+  clip_range: 0.2
+  use_sde: True
+  sde_sample_freq: 4
