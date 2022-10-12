@@ -231,11 +231,12 @@ class ReachEnv(gym.GoalEnv):
 
         return observation, reward, done, info
 
-    def compute_reward(self,
-                       achieved_goal: Union[List[np.ndarray], np.ndarray],
-                       desired_goal: Union[List[np.ndarray], np.ndarray],
-                       info: Union[List[Dict], Dict]
-                       ) -> Union[List[float], float]:
+    def compute_reward(
+        self,
+        achieved_goal: Union[List[np.ndarray], np.ndarray],
+        desired_goal: Union[List[np.ndarray], np.ndarray],
+        info: Union[np.ndarray, List[Dict], Dict]
+    ) -> Union[np.ndarray, List[float], float]:
         """Compute the step reward.
 
         This externalizes the reward function and makes it dependent
@@ -259,7 +260,7 @@ class ReachEnv(gym.GoalEnv):
         distance = np.linalg.norm(
             np.array(achieved_goal)-np.array(desired_goal), axis=-1)
         goal_reached = distance < self.goal_distance
-        if isinstance(info, list):
+        if isinstance(info, np.ndarray) or isinstance(info, list):
             collision = np.array([i["collision"] for i in info])
             reward = (np.ones((len(achieved_goal),)) * self.step_reward +
                       collision * self.collision_reward)
@@ -273,11 +274,12 @@ class ReachEnv(gym.GoalEnv):
             reward += goal_reached * self.goal_reward
         return reward
 
-    def compute_done(self,
-                     achieved_goal: Union[List[np.ndarray], np.ndarray],
-                     desired_goal: Union[List[np.ndarray], np.ndarray],
-                     info: Union[List[Dict], Dict]
-                     ) -> Union[List[bool], bool]:
+    def compute_done(
+        self,
+        achieved_goal: Union[List[np.ndarray], np.ndarray],
+        desired_goal: Union[List[np.ndarray], np.ndarray],
+        info: Union[np.ndarray, List[Dict], Dict]
+    ) -> Union[np.ndarray, List[bool], bool]:
         """Compute the step reward.
 
         This externalizes the done function and makes it dependent
@@ -302,7 +304,7 @@ class ReachEnv(gym.GoalEnv):
             np.array(achieved_goal)-np.array(desired_goal), axis=-1)
         goal_reached = distance < self.goal_distance
         if self.done_on_collision:
-            if isinstance(info, list):
+            if isinstance(info, np.ndarray) or isinstance(info, list):
                 collision = np.array([i["collision"] for i in info])
             else:
                 collision = info["collision"]

@@ -3,19 +3,22 @@ ReachEnv-v0:
     - gym.wrappers.TimeLimit:
         max_episode_steps: 1000
     - stable_baselines3.common.monitor.Monitor
+  # callback:
+  #   - n_dim_reach_env.callbacks.TensorboardCallback:
+  #       additional_log_info_keys: ['n_goal_reached', 'n_collision']
   #vec_env_wrapper: 
   #  - stable_baselines3.common.vec_env.VecMonitor:
   #      info_keywords: ['n_goal_reached', 'n_collision']
   #callback: stable_baselines3.common.callbacks.CheckpointCallback
-  n_envs: 8
+  n_envs: 1
   n_timesteps: 1000000
   policy: 'MultiInputPolicy'
   learning_rate: !!float 3e-4
   buffer_size: 1000000
   batch_size: 128
   ent_coef: 'auto'
-  train_freq: 128
-  gradient_steps: 128
+  train_freq: 1
+  gradient_steps: -1
   learning_starts: 10000
   policy_kwargs: "dict(net_arch=[256, 256])"
   gamma: 0.99
@@ -26,6 +29,9 @@ ReachEnv-v0:
   sde_sample_freq: -1
   target_update_interval: 1
   use_sde_at_warmup: false
+  replay_buffer_class: HerReplayBuffer
+  # Parameters for HER
+  replay_buffer_kwargs: "dict(n_sampled_goal=4,goal_selection_strategy='future',online_sampling=True,max_episode_length=1000)"
 
 BipedalWalkerHardcore-v3:
   env_wrapper:
