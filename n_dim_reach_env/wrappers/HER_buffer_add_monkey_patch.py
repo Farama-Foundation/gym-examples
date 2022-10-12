@@ -21,7 +21,7 @@ from stable_baselines3.her.goal_selection_strategy import (  # noqa: F401
     KEY_TO_GOAL_STRATEGY,  # noqa: F401
     GoalSelectionStrategy,  # noqa: F401
 )  # noqa: F401
-
+from n_dim_reach_env.utils.tictoc import tic, toc
 
 def custom_add(
     self,
@@ -140,6 +140,10 @@ def _custom_sample_transitions(
     Returns
         Samples.
     """
+    if not hasattr(self,'reward_fn'):
+        target_env = self.env._get_target_envs(0)[0]
+        self.reward_fn = getattr(target_env, "compute_reward")
+        self.done_fn = getattr(target_env, "compute_done")
     # Select which episodes to use
     if online_sampling:
         assert (
@@ -212,39 +216,21 @@ def _custom_sample_transitions(
             for episode_idx, transition_idx in zip(episode_indices, transitions_indices)
         ]
     )
-
     # Edge case: episode of one timesteps with the future strategy
     # no virtual transition can be created
     if len(her_indices) > 0:
         # Vectorized computation of the new reward
-        transitions["reward"][her_indices, 0] = self.env.env_method(
-            "compute_reward",
-            # the new state depends on the previous state and action
-            # s_{t+1} = f(s_t, a_t)
-            # so the next_achieved_goal depends also on the previous state and action
-            # because we are in a GoalEnv:
-            # r_t = reward(s_t, a_t) = reward(next_achieved_goal, desired_goal)
-            # therefore we have to use "next_achieved_goal" and not "achieved_goal"
-            transitions["next_achieved_goal"][her_indices, 0],
-            # here we use the new desired goal
-            transitions["desired_goal"][her_indices, 0],
-            transitions["info"][her_indices, 0],
-        )
+        her_next_achieved_goal = transitions["next_achieved_goal"][her_indices, 0]
+        her_desired_goal = transitions["desired_goal"][her_indices, 0]
+        her_info = transitions["info"][her_indices, 0]
+        re = self.reward_fn(her_next_achieved_goal, her_desired_goal, her_info)
+        transitions["reward"][her_indices, 0] = re
         # Vectorized computation of the new done values
-        transitions["done"][her_indices, 0] = self.env.env_method(
-            "compute_done",
-            # the new state depends on the previous state and action
-            # s_{t+1} = f(s_t, a_t)
-            # so the next_achieved_goal depends also on the previous state and action
-            # because we are in a GoalEnv:
-            # r_t = reward(s_t, a_t) = reward(next_achieved_goal, desired_goal)
-            # therefore we have to use "next_achieved_goal" and not "achieved_goal"
-            transitions["next_achieved_goal"][her_indices, 0],
-            # here we use the new desired goal
-            transitions["desired_goal"][her_indices, 0],
-            transitions["info"][her_indices, 0],
+        transitions["done"][her_indices, 0] = self.done_fn(
+            her_next_achieved_goal,
+            her_desired_goal,
+            her_info
         )
-
     # concatenate observation with (desired) goal
     observations = self._normalize_obs(transitions, maybe_vec_env)
 
@@ -256,7 +242,6 @@ def _custom_sample_transitions(
         "desired_goal": transitions["desired_goal"],
     }
     next_observations = self._normalize_obs(next_observations, maybe_vec_env)
-
     if online_sampling:
         next_obs = {
             key: self.to_torch(next_observations[key][:, 0, :])
@@ -267,16 +252,15 @@ def _custom_sample_transitions(
             key: self.to_torch(observations[key][:, 0, :])
             for key in self._observation_keys
         }
-
-        return DictReplayBufferSamples(
+        samples = DictReplayBufferSamples(
             observations=normalized_obs,
             actions=self.to_torch(transitions["action"]),
             next_observations=next_obs,
             dones=self.to_torch(transitions["done"]),
             rewards=self.to_torch(
                 self._normalize_reward(transitions["reward"], maybe_vec_env)
-            ),
-        )
+            ))
+        return samples
     else:
         return (
             observations,
@@ -284,3 +268,16 @@ def _custom_sample_transitions(
             transitions["action"],
             transitions["reward"],
         )
+
+def single_obs(obs_dict):
+    """Convert an observation dictionary to a concatenated vector.
+
+    Args:
+        obs_dict: {'observation', 'achieved_goal', 'desired_goal'} dictionary
+
+    Returns:
+        vec [observation, achieved_goal, desired_goal]
+    """
+    return np.concatenate((
+        obs_dict["observation"],
+        obs_dict["desired_goal"]),  axis=-1)

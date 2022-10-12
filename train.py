@@ -7,6 +7,6 @@ from n_dim_reach_env.wrappers.HER_buffer_add_monkey_patch import (
 )
 
 if __name__ == "__main__":  # noqa: C901
-    # HerReplayBuffer.add = custom_add
-    # HerReplayBuffer._sample_transitions = _custom_sample_transitions
+    HerReplayBuffer.add = custom_add
+    HerReplayBuffer._sample_transitions = _custom_sample_transitions
     train()

@@ -8,6 +8,7 @@ from gym import spaces
 import numpy as np
 import pygame
 from typing import Dict, List, Optional, Tuple, Union
+from n_dim_reach_env.utils.tictoc import tic, toc
 
 
 class ReachEnv(gym.GoalEnv):
@@ -207,11 +208,11 @@ class ReachEnv(gym.GoalEnv):
             info (dict): contains auxiliary diagnostic information.
         """
         self._collision = False
-        next_pos = self._agent_location + action
-        if np.any(np.abs(next_pos) > self.size):
+        if self.collision_check_fn(action):
             self._collision = True
             self._collision_counter += 1
-        self._agent_location = np.clip(next_pos, -self.size, self.size)
+        self._agent_location = np.clip(self._agent_location + action,
+                                       -self.size, self.size)
         observation = self._get_obs()
         goal_reached = self._get_success(self._get_obs()["achieved_goal"],
                                          self._get_obs()["desired_goal"])
@@ -230,6 +231,22 @@ class ReachEnv(gym.GoalEnv):
             self._render_frame()
 
         return observation, reward, done, info
+
+    def collision_check_fn(
+        self,
+        action: np.ndarray
+    ) -> bool:
+        """Return true if the given action would collide."""
+        return np.any(np.abs(self._agent_location + action) > self.size)
+
+    def project_fn(
+        self,
+        action: np.ndarray
+    ) -> np.ndarray:
+        """Return the closest action that is not in collision."""
+        next_loc = np.clip(self._agent_location + action,
+                           -self.size, self.size)
+        return next_loc-self._agent_location
 
     def compute_reward(
         self,
@@ -267,7 +284,6 @@ class ReachEnv(gym.GoalEnv):
         else:
             collision = info["collision"]
             reward = self.step_reward + collision * self.collision_reward
-
         if self.reward_shaping:
             reward += (float(1.0) - np.tanh(distance)) * self.goal_reward
         else:

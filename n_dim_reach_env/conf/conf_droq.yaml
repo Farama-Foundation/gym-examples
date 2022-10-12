@@ -1,0 +1,6 @@
+defaults:
+  - droq: droq
+  - env: reach
+  - train: train
+
+verbose: true

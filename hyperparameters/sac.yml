@@ -2,10 +2,13 @@ ReachEnv-v0:
   env_wrapper:
     - gym.wrappers.TimeLimit:
         max_episode_steps: 1000
+    - n_dim_reach_env.wrappers.CollisionPreventionWrapper:
+        replace_type: 2
+        punishment: -10
     - stable_baselines3.common.monitor.Monitor
   # callback:
   #   - n_dim_reach_env.callbacks.TensorboardCallback:
-  #       additional_log_info_keys: ['n_goal_reached', 'n_collision']
+  #       additional_log_info_keys: ['n_goal_reached', 'n_collision', 'action_resamples']
   #vec_env_wrapper: 
   #  - stable_baselines3.common.vec_env.VecMonitor:
   #      info_keywords: ['n_goal_reached', 'n_collision']
@@ -17,8 +20,8 @@ ReachEnv-v0:
   buffer_size: 1000000
   batch_size: 128
   ent_coef: 'auto'
-  train_freq: 1
-  gradient_steps: -1
+  train_freq: 128
+  gradient_steps: 128
   learning_starts: 10000
   policy_kwargs: "dict(net_arch=[256, 256])"
   gamma: 0.99
