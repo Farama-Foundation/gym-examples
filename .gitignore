@@ -56,3 +56,6 @@ docs/_build/
 logs/
 runs/
 wandb/
+outputs/
+
+.vscode/
