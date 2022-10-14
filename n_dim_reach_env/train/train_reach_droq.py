@@ -33,7 +33,8 @@ from gym import spaces
 from n_dim_reach_env.envs.reach_env import ReachEnv  # noqa: F401
 from n_dim_reach_env.wrappers.collision_prevention_wrapper import CollisionPreventionWrapper  # noqa: E501
 from n_dim_reach_env.conf.config_droq import DroQTrainingConfig
-from n_dim_reach_env.wrappers.HER_buffer_add_monkey_patch import single_obs
+from n_dim_reach_env.rl.util.dict_conversion import single_obs
+from n_dim_reach_env.rl.util.action_scaling import scale_action, unscale_action
 
 from n_dim_reach_env.rl.agents import SACLearner
 from n_dim_reach_env.rl.data import ReplayBuffer
@@ -205,6 +206,10 @@ def main(cfg: DroQTrainingConfig):
             else:
                 action_observation = observation
             action, agent = agent.sample_actions(action_observation)
+            # Agent outputs action in [-1, 1] but we want to step in [low, high]
+            action = unscale_action(action,
+                                    env.action_space.low,
+                                    env.action_space.high)
         next_observation, reward, done, info = env.step(action)
         # Logging
         logging_info["reward"] += reward
@@ -218,10 +223,19 @@ def main(cfg: DroQTrainingConfig):
             mask = 1.0
         else:
             mask = 0.0
+        # The action is in [low, high] space, but the agent learns in [-1, 1] space.
+        insert_action = scale_action(action,
+                                     env.action_space.low,
+                                     env.action_space.high)
+        # Also any adjusted action must be scaled.
+        if "action" in info:
+            info["action"] = scale_action(info["action"],
+                                          env.action_space.low,
+                                          env.action_space.high)
         if cfg.droq.use_HER:
             replay_buffer.insert(
                 data_dict=dict(observations=observation,
-                               actions=action,
+                               actions=insert_action,
                                rewards=reward,
                                masks=mask,
                                dones=done,
@@ -232,7 +246,7 @@ def main(cfg: DroQTrainingConfig):
             if dict_obs:
                 replay_buffer.insert(
                     dict(observations=single_obs(observation),
-                         actions=action,
+                         actions=insert_action,
                          rewards=reward,
                          masks=mask,
                          dones=done,
@@ -240,7 +254,7 @@ def main(cfg: DroQTrainingConfig):
             else:
                 replay_buffer.insert(
                     dict(observations=observation,
-                         actions=action,
+                         actions=insert_action,
                          rewards=reward,
                          masks=mask,
                          dones=done,
@@ -293,6 +307,9 @@ def main(cfg: DroQTrainingConfig):
                         else:
                             action_observation = observation
                         action = agent.eval_actions(action_observation)
+                        action = unscale_action(action,
+                                                env.action_space.low,
+                                                env.action_space.high)
                         observation, _, done, _ = env.step(action)
                 eval_info = {
                     'return': np.mean(env.return_queue),

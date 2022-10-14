@@ -150,21 +150,8 @@ class HEReplayBuffer(ReplayBuffer):
         # Remove termination signals due to timeout
         done = data_dict["dones"]
         # If the environment changed the action.
-        if "action" in infos:
-            # Rescale the action from [low, high] to [-1, 1]
-            if isinstance(env.action_space, gym.spaces.Box):
-                # THIS ASSUMES TANH ACTIVATION FUNCTION FOR THE POLICY NETWORK!!!
-                scaled_action = (
-                    2.0
-                    * (
-                        (infos["action"] - env.action_space.low)
-                        / (env.action_space.high - env.action_space.low)
-                    )
-                    - 1.0
-                )
-                data_dict["actions"] = np.clip(scaled_action, -1, 1)
-            else:
-                data_dict["actions"] = infos["action"]
+        # if "action" in infos:
+        #     data_dict["actions"] = infos["action"]
         # Info buffer full handling
         if self.current_idx == 0 and self.full:
             # Clear info buffer

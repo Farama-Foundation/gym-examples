@@ -70,7 +70,7 @@ class CollisionPreventionWrapper(ActionWrapper):
         obs, reward, done, info = self.env.step(action)
         if replaced:
             reward += self.punishment
-        info["action"] = action
+            info["action"] = action
         info["action_resamples"] = self.action_resamples
         return obs, reward, done, info
 

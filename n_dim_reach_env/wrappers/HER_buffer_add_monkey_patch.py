@@ -268,16 +268,3 @@ def _custom_sample_transitions(
             transitions["action"],
             transitions["reward"],
         )
-
-def single_obs(obs_dict):
-    """Convert an observation dictionary to a concatenated vector.
-
-    Args:
-        obs_dict: {'observation', 'achieved_goal', 'desired_goal'} dictionary
-
-    Returns:
-        vec [observation, achieved_goal, desired_goal]
-    """
-    return np.concatenate((
-        obs_dict["observation"],
-        obs_dict["desired_goal"]),  axis=-1)
