@@ -1,10 +1,12 @@
 """Defines the dataclasses of the config files."""
 from dataclasses import dataclass
+from pickletools import optimize
+from tabnanny import verbose
 from typing import List
 
 
 @dataclass
-class DroQ:
+class DroQConfig:
     """DroQ + HER config."""
 
     actor_lr: float
@@ -31,7 +33,7 @@ class DroQ:
 
 
 @dataclass
-class Env:
+class EnvConfig:
     """Environment config."""
 
     id: str
@@ -53,7 +55,7 @@ class Env:
 
 
 @dataclass
-class Train:
+class TrainConfig:
     """Training settings."""
 
     max_steps: int
@@ -67,10 +69,29 @@ class Train:
 
 
 @dataclass
+class OptimizeConfig:
+    """Optimization settings."""
+
+    optimize: bool
+    tuning_params: List[str]
+    n_trials: int
+    n_startup_trials: int
+    n_timesteps: int
+    n_jobs: int
+    sampler_method: str
+    pruner_method: str
+    n_eval_episodes: int
+    n_evaluations: int
+    seed: int
+    use_prior: bool
+
+
+@dataclass
 class DroQTrainingConfig:
     """Training config."""
 
-    droq: DroQ
-    env: Env
-    train: Train
+    droq: DroQConfig
+    env: EnvConfig
+    train: TrainConfig
+    optimize: OptimizeConfig
     verbose: bool

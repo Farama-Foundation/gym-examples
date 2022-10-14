@@ -6,6 +6,7 @@ Date: 14.10.2022
 import os
 import pickle
 import shutil
+from typing import Optional
 import tqdm
 import gym  # noqa: F401
 import struct
@@ -46,6 +47,7 @@ def train_droq(
     buffer_size: int = 1000000,
     eval_interval: int = 10000,
     eval_episodes: int = 5,
+    eval_callback: Optional[callable] = None,
     load_episode: int = -1,
     run_id: str = "default",
     use_tqdm: bool = True,
@@ -76,6 +78,7 @@ def train_droq(
         buffer_size (int, optional): The size of the replay buffer. Defaults to 1000000.
         eval_interval (int, optional): The number of steps between evaluations. Defaults to 10000.
         eval_episodes (int, optional): The number of episodes to evaluate for. Defaults to 5.
+        eval_callback (Optional[callable], optional): A callback to call after the evaluation runs. Defaults to None.
         load_episode (int, optional): The episode to load the agent from. Defaults to -1.
         run_id (str, optional): The run id to use for wandb. Defaults to "default".
         use_tqdm (bool, optional): Whether to use tqdm for progress bars. Defaults to True.
@@ -176,7 +179,7 @@ def train_droq(
     eval_at_next_done = False
     for i in tqdm.tqdm(range(start_i, int(max_steps)),
                        smoothing=0.1,
-                       disable=not use_tqdm):
+                       disable=not tqdm):
         if i < start_steps:
             action = env.action_space.sample()
         else:
@@ -294,6 +297,8 @@ def train_droq(
                     'return': np.mean(env.return_queue),
                     'length': np.mean(env.length_queue)
                 }
+                if eval_callback is not None:
+                    eval_callback(eval_info["return"])
                 if use_wandb:
                     for k, v in eval_info.items():
                         wandb.log({f'evaluation/{k}': v}, step=i)

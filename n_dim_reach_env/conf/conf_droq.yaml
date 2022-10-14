@@ -2,5 +2,6 @@ defaults:
   - droq: droq
   - env: reach
   - train: train
+  - optimize: optimize
 
 verbose: true
