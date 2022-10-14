@@ -1,6 +1,6 @@
 """Defines the dataclasses of the config files."""
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List
 
 
 @dataclass
@@ -21,13 +21,14 @@ class DroQ:
     init_temperature: float
     sampled_backup: bool
     buffer_size: int
-    use_HER: bool
+    use_her: bool
     n_her_samples: int
     goal_selection_strategy: str
     handle_timeout_termination: bool
     start_steps: int
     batch_size: int
     utd_ratio: int
+
 
 @dataclass
 class Env:
@@ -50,6 +51,7 @@ class Env:
     n_resamples: int
     punishment: int
 
+
 @dataclass
 class Train:
     """Training settings."""
@@ -59,9 +61,10 @@ class Train:
     eval_episodes: int
     tqdm: bool
     use_wandb: bool
+    wandb_project: str
     load_episode: int
     run_id: str
-    
+
 
 @dataclass
 class DroQTrainingConfig:
