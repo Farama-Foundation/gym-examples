@@ -1,5 +1,5 @@
 id: ReachEnv-v0
-n_dim: 2
+n_dim: 6
 max_action: 0.05
 goal_distance: 0.01
 done_on_collision: False

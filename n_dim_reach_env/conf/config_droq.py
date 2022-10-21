@@ -30,6 +30,7 @@ class DroQConfig:
     start_steps: int
     batch_size: int
     utd_ratio: int
+    squash_output: bool
 
 
 @dataclass

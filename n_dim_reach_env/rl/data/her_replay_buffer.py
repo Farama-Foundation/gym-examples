@@ -264,7 +264,7 @@ class HEReplayBuffer(ReplayBuffer):
                 transitions["observations"]["desired_goal"][her_indices],
                 infos[her_indices],
             )
-            transitions["masks"] = transitions["dones"]
+            transitions["masks"] = 1 - transitions["dones"]
         for i in range(k*episode_length):
             transition = dict()
             for k in transitions.keys():

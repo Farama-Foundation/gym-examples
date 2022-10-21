@@ -1,4 +1,4 @@
-optimize: true
+optimize: false
 tuning_params: ["num_qs", "critic_dropout_rate", "critic_layer_norm", "utd_ratio", "batch_size"]
 n_trials: 50
 n_startup_trials: 2

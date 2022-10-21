@@ -31,6 +31,7 @@ from n_dim_reach_env.rl.evaluation import evaluate  # noqa: F401
 
 def train_droq(
     env: gym.Env,
+    eval_env: gym.Env,
     observation_space: spaces.Space,
     dict_obs: bool,
     seed: int = 0,
@@ -38,6 +39,7 @@ def train_droq(
     max_ep_len: int = 1000,
     max_steps: int = 1000000,
     start_steps: int = 10000,
+    squash_output: bool = True,
     use_her: bool = False,
     n_her_samples: int = 4,
     goal_selection_strategy: str = "future",
@@ -62,6 +64,7 @@ def train_droq(
 
     Args:
         env (gym.Env): The environment to train on.
+        eval_env (gym.Env): The environment to evaluate on.
         observation_space (spaces.Space): The observation space of the environment.
         dict_obs (bool): Whether the environment uses dict observations.
         seed (int, optional): The seed to use for the environment and the agent. Defaults to 0.
@@ -69,6 +72,7 @@ def train_droq(
         max_ep_len (int, optional): The maximum episode length. Defaults to 1000.
         max_steps (int, optional): The maximum number of steps to train for. Defaults to 1000000.
         start_steps (int, optional): The number of steps to take random actions before training. Defaults to 10000.
+        squash_output (bool, optional): Whether to squash the output of the actor to [low, high]. Defaults to True.
         use_her (bool, optional): Whether to use hindsight experience replay. Defaults to False.
         n_her_samples (int, optional): The number of HER samples to generate per transition. Defaults to 4.
         goal_selection_strategy (str, optional): The goal selection strategy to use for HER. Defaults to "future".
@@ -166,6 +170,10 @@ def train_droq(
         with open(os.path.join(buffer_dir, f'buffer_{start_i}'), 'rb') as f:
             replay_buffer = pickle.load(f)
 
+    eval_env = gym.wrappers.RecordEpisodeStatistics(
+        eval_env,
+        deque_size=eval_episodes
+    )
     observation, done = env.reset(), False
 
     logging_info = {
@@ -191,7 +199,8 @@ def train_droq(
             # Agent outputs action in [-1, 1] but we want to step in [low, high]
             action = unscale_action(action,
                                     env.action_space.low,
-                                    env.action_space.high)
+                                    env.action_space.high,
+                                    squash_output)
         next_observation, reward, done, info = env.step(action)
         # Logging
         logging_info["reward"] += reward
@@ -201,19 +210,23 @@ def train_droq(
         logging_info["n_goal_reached"] = info["n_goal_reached"]
         logging_info["length"] += 1
 
-        if not done or 'TimeLimit.truncated' in info:
+        if not done:
             mask = 1.0
         else:
+            if 'TimeLimit.truncated' in info:
+                mask = 1.0 if info['TimeLimit.truncated'] else 0.0
             mask = 0.0
         # The action is in [low, high] space, but the agent learns in [-1, 1] space.
         insert_action = scale_action(action,
                                      env.action_space.low,
-                                     env.action_space.high)
+                                     env.action_space.high,
+                                     squash_output)
         # Also any adjusted action must be scaled.
         if "action" in info:
             info["action"] = scale_action(info["action"],
                                           env.action_space.low,
-                                          env.action_space.high)
+                                          env.action_space.high,
+                                          squash_output)
         if use_her:
             replay_buffer.insert(
                 data_dict=dict(observations=observation,
@@ -277,12 +290,8 @@ def train_droq(
                 "length": 0
             }
             if eval_at_next_done:
-                env = gym.wrappers.RecordEpisodeStatistics(
-                    env,
-                    deque_size=eval_episodes
-                )
                 for _ in range(eval_episodes):
-                    observation, done = env.reset(), False
+                    observation, done = eval_env.reset(), False
                     while not done:
                         if dict_obs:
                             action_observation = single_obs(observation)
@@ -290,20 +299,21 @@ def train_droq(
                             action_observation = observation
                         action = agent.eval_actions(action_observation)
                         action = unscale_action(action,
-                                                env.action_space.low,
-                                                env.action_space.high)
-                        observation, _, done, _ = env.step(action)
+                                                eval_env.action_space.low,
+                                                eval_env.action_space.high,
+                                                squash_output)
+                        observation, _, done, _ = eval_env.step(action)
                 eval_info = {
-                    'return': np.mean(env.return_queue),
-                    'length': np.mean(env.length_queue)
+                    'return': np.mean(eval_env.return_queue),
+                    'length': np.mean(eval_env.length_queue)
                 }
+                print("Eval info:", eval_info)
                 if eval_callback is not None:
                     eval_callback(eval_info["return"])
                 if use_wandb:
                     for k, v in eval_info.items():
                         wandb.log({f'evaluation/{k}': v}, step=i)
                 eval_at_next_done = False
-                observation, done = env.reset(), False
                 checkpoints.save_checkpoint(chkpt_dir,
                                             agent,
                                             step=i + 1,
@@ -319,6 +329,7 @@ def train_droq(
                     os.path.join(buffer_dir, f'buffer_{i+1}'), 'wb'
                 ) as f:
                     pickle.dump(replay_buffer, f)
+                observation, done = env.reset(), False
     if use_wandb:
         run.finish()
     env.close()

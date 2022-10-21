@@ -106,29 +106,33 @@ def optimize_hyperparameters(
         # if algo in [Algorithm.TD3] or trial.model_class in [Algorithm.TD3]:
         #     trial.n_actions = 2#env_fn(n_envs=1).action_space.shape[0]
         # kwargs.update(algo_sampler(trial))
+        env = env_fn(env_args)
         eval_env = env_fn(env_args)
-        observation_space = obs_space_fn(eval_env)
-        dict_obs = has_dict_obs_fn(eval_env)
+        observation_space = obs_space_fn(env)
+        dict_obs = has_dict_obs_fn(env)
         # Account for parallel envs
         try:
             train_droq(
-                env=eval_env,
+                env=env,
+                eval_env=eval_env,
                 observation_space=observation_space,
                 dict_obs=dict_obs,
                 **kwargs
             )
             # Free memory
+            env.close()
             eval_env.close()
         except Exception as e:
             print(e)
             # Sometimes, random hyperparams can generate NaN
             # Free memory
+            env.close()
             eval_env.close()
             raise optuna.exceptions.TrialPruned()
         is_pruned = eval_callback.is_pruned
         cost = -1 * eval_callback.last_mean_reward
 
-        del eval_env
+        del env, eval_env, observation_space, dict_obs
 
         if is_pruned:
             raise optuna.exceptions.TrialPruned()

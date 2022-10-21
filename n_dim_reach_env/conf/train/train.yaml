@@ -2,7 +2,7 @@ max_steps: 1000000
 eval_interval: 20000
 eval_episodes: 3
 tqdm: true
-use_wandb: False
+use_wandb: true
 wandb_project: n-dim-reach
 load_episode: -1
 run_id: null

@@ -126,6 +126,7 @@ def main(cfg: DroQTrainingConfig):
         "max_ep_len": cfg.env.max_ep_len,
         "max_steps": cfg.train.max_steps,
         "start_steps": cfg.droq.start_steps,
+        "squash_output": cfg.droq.squash_output,
         "use_her": cfg.droq.use_her,
         "n_her_samples": cfg.droq.n_her_samples,
         "goal_selection_strategy": cfg.droq.goal_selection_strategy,
@@ -147,10 +148,12 @@ def main(cfg: DroQTrainingConfig):
     }
     if not cfg.optimize.optimize:
         env = create_env(cfg.env)
+        eval_env = create_env(cfg.env)
         observation_space = get_observation_space(env)
         dict_obs = has_dict_obs(env)
         train_droq(
             env=env,
+            eval_env=eval_env,
             observation_space=observation_space,
             dict_obs=dict_obs,
             **learn_args

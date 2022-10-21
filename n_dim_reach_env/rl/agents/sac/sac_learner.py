@@ -124,7 +124,7 @@ class SACLearner(Agent):
                                        actions,
                                        True,
                                        rngs={'dropout': key2})  # training=True
-            q = qs.mean(axis=0)
+            q = qs.min(axis=0)
             actor_loss = (log_probs *
                           agent.temp.apply_fn({'params': agent.temp.params}) -
                           q).mean()

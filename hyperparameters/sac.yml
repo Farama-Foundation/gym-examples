@@ -3,8 +3,8 @@ ReachEnv-v0:
     - gym.wrappers.TimeLimit:
         max_episode_steps: 1000
     - n_dim_reach_env.wrappers.CollisionPreventionWrapper:
-        replace_type: 2
-        punishment: -10
+        replace_type: 1
+        punishment: -1
     - stable_baselines3.common.monitor.Monitor
   # callback:
   #   - n_dim_reach_env.callbacks.TensorboardCallback:
