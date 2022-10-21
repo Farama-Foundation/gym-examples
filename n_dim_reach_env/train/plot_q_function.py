@@ -36,10 +36,10 @@ from n_dim_reach_env.rl.agents import SACLearner
 cs = ConfigStore.instance()
 cs.store(name="droq_config", node=DroQTrainingConfig)
 
-PLOT_DIMENSIONS = [0, 3]
+PLOT_DIMENSIONS = [0, 1]
 N_PLOTS = 5
 N_POINTS = 10
-N_ACTIONS = 8
+N_ACTIONS = 16
 
 
 @hydra.main(config_path="../conf", config_name="conf_droq")
@@ -91,56 +91,88 @@ def main(cfg: DroQTrainingConfig):
     #     replay_buffer = pickle.load(f)
     # Test actor
     n_dim = cfg.env.n_dim
-    observation = observation_space.sample()
     assert n_dim >= 2, "n_dim must be at least 2"
-    if n_dim > 2:
-        # Set all other dimensions to "goal reached"
-        for i in range(n_dim):
-            if i not in PLOT_DIMENSIONS:
-                observation[i] = observation[i + n_dim]
-    action = agent.eval_actions(observation)
-    # Test critic
-    q_values = np.zeros([N_POINTS, N_POINTS])
-    best_actions = np.zeros([N_POINTS, N_POINTS, 2])
-    positions = np.linspace(-1 + 1/N_POINTS, 1-1/N_POINTS, N_POINTS)
-    phis = np.pi * np.linspace(-1 + 1/N_ACTIONS, 1 - 1/N_ACTIONS, N_ACTIONS)
-    actions = np.zeros([N_ACTIONS, 2])
-    actions[:, 0] = np.cos(phis)
-    actions[:, 1] = np.sin(phis)
-    zero_action = np.zeros(action.shape[0])
-    a = np.repeat(zero_action[np.newaxis, :], N_ACTIONS, axis=0)
-    a[:, PLOT_DIMENSIONS] = actions
-    for i in range(N_POINTS):
-        for j in range(N_POINTS):
-            obs = observation.copy()
-            obs[PLOT_DIMENSIONS] = [positions[i], positions[j]]
-            o = np.repeat(obs[np.newaxis, :], N_ACTIONS, axis=0)
-            key, rng = jax.random.split(agent.rng)
-            key2, rng = jax.random.split(rng)
-            q_vals = np.min(agent.critic.apply_fn(
-                {'params': agent.critic.params},
-                o,
-                a,
-                True,
-                rngs={'dropout': key2})._value, axis=0)
-            best = np.argmax(q_vals)
-            best_actions[i, j] = unscale_action(
-                actions[best],
-                low=action_space.low[PLOT_DIMENSIONS],
-                high=action_space.high[PLOT_DIMENSIONS])
-            q_values[i, j] = q_vals[best]
+    for _ in range(N_PLOTS):
+        observation = observation_space.sample()
+        if n_dim > 2:
+            # Set all other dimensions to "goal reached"
+            for i in range(n_dim):
+                if i not in PLOT_DIMENSIONS:
+                    observation[i] = observation[i + n_dim]
+        action = agent.eval_actions(observation)
+        # Test critic
+        q_values = np.zeros([N_POINTS, N_POINTS])
+        best_actions = np.zeros([N_POINTS, N_POINTS, 2])
+        positions = np.linspace(-1 + 1/N_POINTS, 1-1/N_POINTS, N_POINTS)
+        phis = np.pi * np.linspace(-1 + 1/N_ACTIONS, 1 - 1/N_ACTIONS, N_ACTIONS)
+        actions = np.zeros([N_ACTIONS, 2])
+        actions[:, 0] = np.cos(phis)
+        actions[:, 1] = np.sin(phis)
+        zero_action = np.zeros(action.shape[0])
+        a = np.tile(zero_action, (N_ACTIONS, 1))
+        a[:, PLOT_DIMENSIONS] = actions
+        all_actions = np.tile(a, (N_POINTS**2, 1))
+        observations = np.tile(observation, (N_POINTS**2, 1))
+        o_i = np.repeat(positions, N_POINTS)
+        o_j = np.tile(positions, N_POINTS)
+        o = np.concatenate([o_i[:, np.newaxis], o_j[:, np.newaxis]], axis=1)
+        observations[:, PLOT_DIMENSIONS] = o
+        all_observations = np.repeat(observations, N_ACTIONS, axis=0)
+        key, rng = jax.random.split(agent.rng)
+        # key2, rng = jax.random.split(rng)
+        result_q_vals = agent.critic.apply_fn(
+            {'params': agent.critic.params},
+            all_observations,
+            all_actions,
+            True,
+            rngs={'dropout': key})._value
+        min_q_val = np.min(result_q_vals, axis=0)
+        policy_actions = agent.eval_actions(observations)
+        for i in range(N_POINTS):
+            for j in range(N_POINTS):
+                start = i*N_POINTS*N_ACTIONS + j*N_ACTIONS
+                end = start + N_ACTIONS
+                best = start + np.argmax(min_q_val[start:end])
+                best_actions[i, j] = unscale_action(
+                    all_actions[best, PLOT_DIMENSIONS],
+                    low=action_space.low[PLOT_DIMENSIONS],
+                    high=action_space.high[PLOT_DIMENSIONS])
+                # Dimensions are switched because of imshow
+                q_values[j, i] = min_q_val[best]
 
-    # Plot a heatmap of the Q function
-    # left, right, bottom, top
-    extent = [-1, 1, 1, -1]
-    plt.imshow(q_values, cmap='hot', interpolation='nearest', extent=extent)
-    for i in range(N_POINTS):
-        for j in range(N_POINTS):
-            plt.arrow(positions[i], positions[j], best_actions[i, j, 0], best_actions[i, j, 1], width=0.01)
-    plt.plot(observation[PLOT_DIMENSIONS[0]+n_dim], observation[PLOT_DIMENSIONS[1]+n_dim], 'bo')
-    plt.colorbar()
-    plt.show()
-    stop=0
+        # Plot a heatmap of the Q function
+        # left, right, bottom, top
+        extent = [-1, 1, 1, -1]
+        plt.imshow(q_values, cmap='hot', interpolation='nearest', extent=extent)
+        for i in range(N_POINTS):
+            for j in range(N_POINTS):
+                handle_q_val = plt.arrow(
+                    positions[i],
+                    positions[j],
+                    best_actions[i, j, 0],
+                    best_actions[i, j, 1],
+                    width=0.01,
+                    color='blue',
+                    label='Best Q-function action')
+                unscaled_policy_action = unscale_action(
+                    policy_actions[i*N_POINTS + j],
+                    low=action_space.low,
+                    high=action_space.high)
+                handle_policy = plt.arrow(
+                    positions[i],
+                    positions[j],
+                    unscaled_policy_action[PLOT_DIMENSIONS[0]],
+                    unscaled_policy_action[PLOT_DIMENSIONS[1]],
+                    width=0.01,
+                    color='green',
+                    label='Best policy action')
+        plt.plot(observation[PLOT_DIMENSIONS[0]+n_dim], observation[PLOT_DIMENSIONS[1]+n_dim], 'bo')
+        plt.xlabel('Dimension {}'.format(PLOT_DIMENSIONS[0]))
+        plt.ylabel('Dimension {}'.format(PLOT_DIMENSIONS[1]))
+        plt.legend(handles=[handle_q_val, handle_policy])
+        # plt.colorbar()
+        plt.show()
+        stop=0
 
 
 if __name__ == "__main__":
