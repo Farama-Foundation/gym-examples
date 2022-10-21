@@ -1,7 +1,5 @@
 """Defines the dataclasses of the config files."""
 from dataclasses import dataclass
-from pickletools import optimize
-from tabnanny import verbose
 from typing import List
 
 
@@ -65,8 +63,8 @@ class TrainConfig:
     tqdm: bool
     use_wandb: bool
     wandb_project: str
-    load_episode: int
-    run_id: str
+    load_checkpoint: int
+    load_from_folder: str
 
 
 @dataclass

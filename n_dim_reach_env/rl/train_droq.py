@@ -50,8 +50,8 @@ def train_droq(
     eval_interval: int = 10000,
     eval_episodes: int = 5,
     eval_callback: Optional[callable] = None,
-    load_episode: int = -1,
-    run_id: str = "default",
+    load_checkpoint: int = -1,
+    load_from_folder: str = None,
     use_tqdm: bool = True,
     use_wandb: bool = False,
     wandb_project: str = "n-dim-reach",
@@ -83,8 +83,10 @@ def train_droq(
         eval_interval (int, optional): The number of steps between evaluations. Defaults to 10000.
         eval_episodes (int, optional): The number of episodes to evaluate for. Defaults to 5.
         eval_callback (Optional[callable], optional): A callback to call after the evaluation runs. Defaults to None.
-        load_episode (int, optional): The episode to load the agent from. Defaults to -1.
-        run_id (str, optional): The run id to use for wandb. Defaults to "default".
+        load_checkpoint (int, optional): The checkpoint to load. Defaults to -1.
+            Set to -1 to load the latest checkpoint.
+        load_from_folder (str, optional): The folder to load the checkpoint from. Defaults to None.
+            Set to None to not load from folder.
         use_tqdm (bool, optional): Whether to use tqdm for progress bars. Defaults to True.
         use_wandb (bool, optional): Whether to use wandb for logging. Defaults to False.
         wandb_project (str, optional): The wandb project to use. Defaults to "n-dim-reach".
@@ -95,7 +97,7 @@ def train_droq(
     """
     os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".80"
     print(jax.devices())
-    if load_episode == -1:
+    if load_from_folder is None:
         if use_wandb:
             run = wandb.init(
                 project=wandb_project,
@@ -142,6 +144,14 @@ def train_droq(
             )
         replay_buffer.seed(seed)
     else:
+        chkpt_dir = load_from_folder + 'saved/checkpoints/'
+        buffer_dir = load_from_folder + 'saved/buffers/'
+        d = os.listdir(chkpt_dir)[0]
+        if os.path.isdir(chkpt_dir + d):
+            run_id = d
+            chkpt_dir = chkpt_dir + d
+            buffer_dir = buffer_dir + d
+
         if use_wandb:
             run = wandb.init(
                 project=wandb_project,
@@ -161,10 +171,10 @@ def train_droq(
             action_space=env.action_space,
             **agent_kwargs
         )
-        chkpt_dir = 'saved/checkpoints/' + str(run.id)
-        os.makedirs(chkpt_dir, exist_ok=True)
-        buffer_dir = 'saved/buffers/' + str(run.id)
-        last_checkpoint = checkpoints.latest_checkpoint(chkpt_dir)
+        if load_checkpoint == -1:
+            last_checkpoint = checkpoints.latest_checkpoint(chkpt_dir)
+        else:
+            last_checkpoint = chkpt_dir + '/checkpoint_' + str(load_checkpoint)
         start_i = int(last_checkpoint.split('_')[-1])
         agent = checkpoints.restore_checkpoint(last_checkpoint, agent)
         with open(os.path.join(buffer_dir, f'buffer_{start_i}'), 'rb') as f:

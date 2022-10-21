@@ -10,13 +10,10 @@ Changelog:
     15.10.22 JT Created File.
 """
 import os
-from copy import copy
-from tkinter import N
-from typing import Any, Dict
 import gym  # noqa: F401
 import numpy as np
 import jax
-import pickle
+# import pickle
 import matplotlib.pyplot as plt
 
 from flax.training import checkpoints
@@ -24,22 +21,25 @@ from flax.training import checkpoints
 import hydra
 from hydra.core.config_store import ConfigStore
 
-from gym.wrappers import TimeLimit
-from gym import spaces
-
-from n_dim_reach_env.envs.reach_env import ReachEnv
+from n_dim_reach_env.envs.reach_env import ReachEnv  # noqa: F401
 from n_dim_reach_env.rl.optimization.optimize_hyperparameters import optimize_hyperparameters  # noqa: F401
-from n_dim_reach_env.wrappers.collision_prevention_wrapper import CollisionPreventionWrapper  # noqa: E501
-from n_dim_reach_env.conf.config_droq import DroQTrainingConfig, EnvConfig
+from n_dim_reach_env.wrappers.collision_prevention_wrapper import CollisionPreventionWrapper  # noqa: F401
+from n_dim_reach_env.conf.config_droq import DroQTrainingConfig
 
-from n_dim_reach_env.train.train_reach_droq import create_env, get_observation_space, has_dict_obs
+from n_dim_reach_env.train.train_reach_droq import create_env, get_observation_space
+from n_dim_reach_env.rl.util.action_scaling import unscale_action
 
 from n_dim_reach_env.rl.agents import SACLearner
-from n_dim_reach_env.rl.data import ReplayBuffer
-from n_dim_reach_env.rl.data.her_replay_buffer import HEReplayBuffer
+# from n_dim_reach_env.rl.data import ReplayBuffer
+# from n_dim_reach_env.rl.data.her_replay_buffer import HEReplayBuffer
 
 cs = ConfigStore.instance()
 cs.store(name="droq_config", node=DroQTrainingConfig)
+
+PLOT_DIMENSIONS = [0, 3]
+N_PLOTS = 5
+N_POINTS = 10
+N_ACTIONS = 8
 
 
 @hydra.main(config_path="../conf", config_name="conf_droq")
@@ -51,9 +51,16 @@ def main(cfg: DroQTrainingConfig):
     # << Training >>
     env = create_env(cfg.env)
     observation_space = get_observation_space(env)
-    has_dict = has_dict_obs(env)
+    # has_dict = has_dict_obs(env)
     action_space = env.action_space
-    run_id = cfg.train.run_id
+    assert cfg.train.load_from_folder is not None
+    chkpt_dir = cfg.train.load_from_folder + 'saved/checkpoints/'
+    buffer_dir = cfg.train.load_from_folder + 'saved/buffers/'
+    d = os.listdir(chkpt_dir)[0]
+    assert os.path.isdir(chkpt_dir + d)
+    chkpt_dir = chkpt_dir + d
+    buffer_dir = buffer_dir + d
+
     agent_kwargs = {
         "actor_lr": cfg.droq.actor_lr,
         "critic_lr": cfg.droq.critic_lr,
@@ -74,58 +81,64 @@ def main(cfg: DroQTrainingConfig):
         observation_space,
         action_space,
         **agent_kwargs)
-    # chkpt_dir = 'saved/checkpoints/' + str(run_id)
-    # buffer_dir = 'saved/buffers/' + str(run_id)
-    chkpt_dir = '/home/jakob/Promotion/code/n-dim-reach-env/outputs/2022-10-14/18-23-54/saved/checkpoints/30706'
-    last_checkpoint = checkpoints.latest_checkpoint(chkpt_dir)
+    if cfg.train.load_checkpoint == -1:
+        last_checkpoint = checkpoints.latest_checkpoint(chkpt_dir)
+    else:
+        last_checkpoint = chkpt_dir + '/checkpoint_' + str(cfg.train.load_checkpoint)
     # start_i = int(last_checkpoint.split('_')[-1])
     agent = checkpoints.restore_checkpoint(last_checkpoint, agent)
+    # with open(os.path.join(buffer_dir, f'buffer_{start_i}'), 'rb') as f:
+    #     replay_buffer = pickle.load(f)
     # Test actor
     n_dim = cfg.env.n_dim
     observation = observation_space.sample()
-    if n_dim == 1:
-        print("Dimension 1 not supported.")
-        return
-    elif n_dim > 2:
+    assert n_dim >= 2, "n_dim must be at least 2"
+    if n_dim > 2:
         # Set all other dimensions to "goal reached"
-        observation[2:n_dim] = observation[n_dim+2:2*n_dim]
+        for i in range(n_dim):
+            if i not in PLOT_DIMENSIONS:
+                observation[i] = observation[i + n_dim]
     action = agent.eval_actions(observation)
     # Test critic
-    n_points = 10
-    n_actions = 8
-    q_values = np.zeros([n_points, n_points])
-    best_actions = np.zeros([n_points, n_points, 2])
-    positions = np.linspace(-1 + 1/n_points, 1-1/n_points, n_points)
-    phis = np.pi * np.linspace(-1 + 1/n_actions, 1 - 1/n_actions, n_actions)
-    actions = np.zeros([n_actions, 2])
+    q_values = np.zeros([N_POINTS, N_POINTS])
+    best_actions = np.zeros([N_POINTS, N_POINTS, 2])
+    positions = np.linspace(-1 + 1/N_POINTS, 1-1/N_POINTS, N_POINTS)
+    phis = np.pi * np.linspace(-1 + 1/N_ACTIONS, 1 - 1/N_ACTIONS, N_ACTIONS)
+    actions = np.zeros([N_ACTIONS, 2])
     actions[:, 0] = np.cos(phis)
     actions[:, 1] = np.sin(phis)
     zero_action = np.zeros(action.shape[0])
-    a = np.repeat(zero_action[np.newaxis,:], n_actions, axis = 0)
-    a[:, 0:2] = actions
-    for i in range(n_points):
-        for j in range(n_points):
+    a = np.repeat(zero_action[np.newaxis, :], N_ACTIONS, axis=0)
+    a[:, PLOT_DIMENSIONS] = actions
+    for i in range(N_POINTS):
+        for j in range(N_POINTS):
             obs = observation.copy()
-            obs[0:2] = [positions[i], positions[j]]
-            o = np.repeat(obs[np.newaxis,:], n_actions, axis = 0)
+            obs[PLOT_DIMENSIONS] = [positions[i], positions[j]]
+            o = np.repeat(obs[np.newaxis, :], N_ACTIONS, axis=0)
             key, rng = jax.random.split(agent.rng)
             key2, rng = jax.random.split(rng)
-            q_vals = np.mean(agent.critic.apply_fn(
+            q_vals = np.min(agent.critic.apply_fn(
                 {'params': agent.critic.params},
                 o,
                 a,
                 True,
                 rngs={'dropout': key2})._value, axis=0)
             best = np.argmax(q_vals)
-            best_actions[i, j] = actions[best]
+            best_actions[i, j] = unscale_action(
+                actions[best],
+                low=action_space.low[PLOT_DIMENSIONS],
+                high=action_space.high[PLOT_DIMENSIONS])
             q_values[i, j] = q_vals[best]
 
     # Plot a heatmap of the Q function
-    plt.imshow(q_values, cmap='hot', interpolation='nearest')
-    for i in range(n_points):
-        for j in range(n_points):
-            plt.arrow(i, j, best_actions[i, j, 0], best_actions[i, j, 1], width=0.01)
-    plt.plot(observation[n_dim], observation[n_dim+1], 'bo')
+    # left, right, bottom, top
+    extent = [-1, 1, 1, -1]
+    plt.imshow(q_values, cmap='hot', interpolation='nearest', extent=extent)
+    for i in range(N_POINTS):
+        for j in range(N_POINTS):
+            plt.arrow(positions[i], positions[j], best_actions[i, j, 0], best_actions[i, j, 1], width=0.01)
+    plt.plot(observation[PLOT_DIMENSIONS[0]+n_dim], observation[PLOT_DIMENSIONS[1]+n_dim], 'bo')
+    plt.colorbar()
     plt.show()
     stop=0
 

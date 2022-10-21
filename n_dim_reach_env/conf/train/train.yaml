@@ -4,5 +4,5 @@ eval_episodes: 3
 tqdm: true
 use_wandb: true
 wandb_project: n-dim-reach
-load_episode: -1
-run_id: null
+load_checkpoint: -1
+load_from_folder: /home/jakob/Promotion/code/n-dim-reach-env/n_dim_reach_env/train/outputs/2022-10-18/13-05-36/
