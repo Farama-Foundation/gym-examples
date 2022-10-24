@@ -136,8 +136,8 @@ def main(cfg: DroQTrainingConfig):
         "buffer_size": cfg.droq.buffer_size,
         "eval_interval": cfg.train.eval_interval,
         "eval_episodes": cfg.train.eval_episodes,
-        "load_episode": cfg.train.load_episode,
-        "run_id": cfg.train.run_id,
+        "load_checkpoint": cfg.train.load_checkpoint,
+        "load_from_folder": cfg.train.load_from_folder,
         "use_tqdm": cfg.train.tqdm,
         "use_wandb": cfg.train.use_wandb,
         "wandb_project": cfg.train.wandb_project,
@@ -160,7 +160,8 @@ def main(cfg: DroQTrainingConfig):
         )
     else:
         learn_args["use_wandb"] = False
-        learn_args["load_episode"] = -1
+        learn_args["load_checkpoint"] = -1
+        learn_args["load_from_folder"] = None
         env_args = copy(cfg.env)
         # del env_args.max_ep_len
         optimize_hyperparameters(
