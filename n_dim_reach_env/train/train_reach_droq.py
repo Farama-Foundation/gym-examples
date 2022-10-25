@@ -177,6 +177,8 @@ def main(cfg: DroQTrainingConfig):
             n_jobs=cfg.optimize.n_jobs,
             sampler_method=cfg.optimize.sampler_method,
             pruner_method=cfg.optimize.pruner_method,
+            n_warmup_steps=cfg.optimize.n_warmup_steps,
+            upper_threshold=cfg.optimize.upper_threshold,
             n_eval_episodes=cfg.optimize.n_eval_episodes,
             n_evaluations=cfg.optimize.n_evaluations,
             seed=cfg.optimize.seed,

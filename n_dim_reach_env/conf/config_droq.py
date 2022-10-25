@@ -79,6 +79,8 @@ class OptimizeConfig:
     n_jobs: int
     sampler_method: str
     pruner_method: str
+    n_warmup_steps: int
+    upper_threshold: float
     n_eval_episodes: int
     n_evaluations: int
     seed: int

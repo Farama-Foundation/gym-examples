@@ -36,9 +36,9 @@ from n_dim_reach_env.rl.agents import SACLearner
 cs = ConfigStore.instance()
 cs.store(name="droq_config", node=DroQTrainingConfig)
 
-PLOT_DIMENSIONS = [0, 1]
+PLOT_DIMENSIONS = [3, 5]
 N_PLOTS = 5
-N_POINTS = 10
+N_POINTS = 20
 N_ACTIONS = 16
 
 
@@ -127,7 +127,8 @@ def main(cfg: DroQTrainingConfig):
             True,
             rngs={'dropout': key})._value
         min_q_val = np.min(result_q_vals, axis=0)
-        policy_actions = agent.eval_actions(observations)
+        eval_actions = agent.eval_actions(observations)
+        sample_actions, new_agent = agent.sample_actions(observations)
         for i in range(N_POINTS):
             for j in range(N_POINTS):
                 start = i*N_POINTS*N_ACTIONS + j*N_ACTIONS
@@ -151,26 +152,38 @@ def main(cfg: DroQTrainingConfig):
                     positions[j],
                     best_actions[i, j, 0],
                     best_actions[i, j, 1],
-                    width=0.01,
+                    width=0.1/N_POINTS,
                     color='blue',
                     label='Best Q-function action')
-                unscaled_policy_action = unscale_action(
-                    policy_actions[i*N_POINTS + j],
+                unscaled_eval_action = unscale_action(
+                    eval_actions[i*N_POINTS + j],
                     low=action_space.low,
                     high=action_space.high)
-                handle_policy = plt.arrow(
+                handle_eval = plt.arrow(
                     positions[i],
                     positions[j],
-                    unscaled_policy_action[PLOT_DIMENSIONS[0]],
-                    unscaled_policy_action[PLOT_DIMENSIONS[1]],
-                    width=0.01,
+                    unscaled_eval_action[PLOT_DIMENSIONS[0]],
+                    unscaled_eval_action[PLOT_DIMENSIONS[1]],
+                    width=0.1/N_POINTS,
                     color='green',
                     label='Best policy action')
+                unscaled_sample_action = unscale_action(
+                    sample_actions[i*N_POINTS + j],
+                    low=action_space.low,
+                    high=action_space.high)
+                handle_sample = plt.arrow(
+                    positions[i],
+                    positions[j],
+                    unscaled_sample_action[PLOT_DIMENSIONS[0]],
+                    unscaled_sample_action[PLOT_DIMENSIONS[1]],
+                    width=0.1/N_POINTS,
+                    color='red',
+                    label='Sampled policy action')
         plt.plot(observation[PLOT_DIMENSIONS[0]+n_dim], observation[PLOT_DIMENSIONS[1]+n_dim], 'bo')
         plt.xlabel('Dimension {}'.format(PLOT_DIMENSIONS[0]))
         plt.ylabel('Dimension {}'.format(PLOT_DIMENSIONS[1]))
-        plt.legend(handles=[handle_q_val, handle_policy])
-        # plt.colorbar()
+        plt.legend(handles=[handle_q_val, handle_eval, handle_sample])
+        plt.colorbar()
         plt.show()
         stop=0
 

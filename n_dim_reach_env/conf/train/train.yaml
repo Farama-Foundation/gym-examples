@@ -1,8 +1,8 @@
-max_steps: 1000000
-eval_interval: 20000
-eval_episodes: 3
+max_steps: 100000
+eval_interval: 5000
+eval_episodes: 1
 tqdm: true
 use_wandb: true
 wandb_project: n-dim-reach
-load_checkpoint: -1
-load_from_folder: /home/jakob/Promotion/code/n-dim-reach-env/n_dim_reach_env/train/outputs/2022-10-18/13-05-36/
+load_checkpoint: -1 #20000
+load_from_folder: null #/home/jakob/Promotion/code/n-dim-reach-env/n_dim_reach_env/train/outputs/2022-10-24/10-37-41/

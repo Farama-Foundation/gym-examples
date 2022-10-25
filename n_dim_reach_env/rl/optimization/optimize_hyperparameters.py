@@ -5,7 +5,7 @@ Date: 14.10.2022
 """
 from typing import Any, Dict, List
 import optuna
-from optuna.pruners import SuccessiveHalvingPruner, MedianPruner
+from optuna.pruners import ThresholdPruner, SuccessiveHalvingPruner, MedianPruner
 from optuna.samplers import RandomSampler, TPESampler
 from optuna.integration.skopt import SkoptSampler
 
@@ -28,6 +28,8 @@ def optimize_hyperparameters(
     n_jobs: int = 1,
     sampler_method: str = 'random',
     pruner_method: str = 'halving',
+    n_warmup_steps: int = 50000,
+    upper_threshold: float = 999,
     n_eval_episodes: int = 5,
     n_evaluations: int = 20,
     seed: int = 0,
@@ -46,13 +48,15 @@ def optimize_hyperparameters(
     :param n_startup_trials: (int) number of trials before using the sampler
     :param n_timesteps: (int) maximum number of timesteps per trial
     :param n_jobs: (int) number of parallel jobs
-    :param sampler_method: (str)
-    :param pruner_method: (str)
+    :param sampler_method: (str) method for sampling hyperparams, one of 'random', 'tpe', 'skopt'
+    :param pruner_method: (str) method for pruning, one of ['halving', 'median', 'threshold']
+    :param n_warmup_steps: (int) number of warmup steps for pruning (only for 'median' and 'threshold')
+    :param upper_threshold: (float) upper threshold for pruning (only for 'threshold')
     :param n_eval_episodes: (int) number of episodes to evaluate the agent
     :param n_evaluations: (int) number of evaluations per trial
-    :param seed: (int)
+    :param seed: (int) random seed
     :param use_prior: (bool) whether to use prior knowledge for DroQ hyperparams
-    :param verbose: (int)
+    :param verbose: (int) verbosity level
     :return: (pd.Dataframe) detailed result of the optimization
     """
     # TODO: eval each hyperparams several times to account for noisy evaluation
@@ -79,9 +83,13 @@ def optimize_hyperparameters(
             min_resource=1,
             reduction_factor=4,
             min_early_stopping_rate=0)
+    elif pruner_method == 'threshold':
+        pruner = ThresholdPruner(
+            upper=upper_threshold,
+            n_warmup_steps=n_warmup_steps)  
     elif pruner_method == 'median':
         pruner = MedianPruner(n_startup_trials=n_startup_trials,
-                              n_warmup_steps=n_evaluations // 3)
+                              n_warmup_steps=n_warmup_steps)
     elif pruner_method == 'none':
         # Do not prune
         pruner = MedianPruner(n_startup_trials=n_trials,
@@ -97,7 +105,7 @@ def optimize_hyperparameters(
     def objective(trial):
         eval_callback = TrialEvalCallback(trial)
         kwargs = learn_args.copy()
-        kwargs.update(sample_droq_params(trial, tuning_params))
+        kwargs['agent_kwargs'].update(sample_droq_params(trial, tuning_params))
         kwargs.update({'eval_callback': eval_callback._on_step,
                        'max_steps': n_timesteps,
                        'eval_interval': eval_freq,
@@ -174,16 +182,15 @@ def sample_droq_params(
         Dict of sampled hyperparams
     """
     hyperparams = dict()
-    hyperparams['agent_kwargs'] = dict()
     if 'actor_lr' in tuning_params:
         actor_lr = trial.suggest_loguniform('actor_lr', 1e-6, 0.01)
-        hyperparams['agent_kwargs']['actor_lr'] = actor_lr
+        hyperparams['actor_lr'] = actor_lr
     if 'critic_lr' in tuning_params:
         critic_lr = trial.suggest_loguniform('critic_lr', 1e-6, 0.01)
-        hyperparams['agent_kwargs']['critic_lr'] = critic_lr
+        hyperparams['critic_lr'] = critic_lr
     if 'temp_lr' in tuning_params:
         temp_lr = trial.suggest_loguniform('temp_lr', 1e-6, 0.01)
-        hyperparams['agent_kwargs']['temp_lr'] = temp_lr
+        hyperparams['temp_lr'] = temp_lr
     if 'hidden_dims' in tuning_params:
         hidden_dims = trial.suggest_categorical('hidden_dims', [
             [64, 64],
@@ -193,32 +200,32 @@ def sample_droq_params(
             [128, 128, 128],
             [256, 256, 256],
         ])
-        hyperparams['agent_kwargs']['hidden_dims'] = hidden_dims
+        hyperparams['hidden_dims'] = hidden_dims
     if 'discount' in tuning_params:
         discount = trial.suggest_categorical('discount', [0.95, 0.97, 0.98, 0.99, 0.995, 0.999])
-        hyperparams['agent_kwargs']['discount'] = discount
+        hyperparams['discount'] = discount
     if 'tau' in tuning_params:
         tau = trial.suggest_categorical('tau', [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.2]) 
-        hyperparams['agent_kwargs']['tau'] = tau
+        hyperparams['tau'] = tau
     if 'num_qs' in tuning_params:
         num_qs = trial.suggest_categorical('num_qs', [1, 2, 3]) 
-        hyperparams['agent_kwargs']['num_qs'] = num_qs
+        hyperparams['num_qs'] = num_qs
     # num_min_qs: null
     if 'critic_dropout_rate' in tuning_params:
         critic_dropout_rate = trial.suggest_loguniform('critic_dropout_rate', 1e-4, 0.1)
-        hyperparams['agent_kwargs']['critic_dropout_rate'] = critic_dropout_rate
+        hyperparams['critic_dropout_rate'] = critic_dropout_rate
     if 'critic_layer_norm' in tuning_params:
         critic_layer_norm = trial.suggest_categorical('critic_layer_norm', [True, False])
-        hyperparams['agent_kwargs']['critic_layer_norm'] = critic_layer_norm
+        hyperparams['critic_layer_norm'] = critic_layer_norm
     if 'target_entropy' in tuning_params:
         target_entropy = trial.suggest_categorical('target_entropy', [-0.1, -0.5, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10])
-        hyperparams['agent_kwargs']['target_entropy'] = target_entropy
+        hyperparams['target_entropy'] = target_entropy
     if 'init_temperature' in tuning_params:
         init_temperature = trial.suggest_loguniform('init_temperature', 1e-4, 0.5)
-        hyperparams['agent_kwargs']['init_temperature'] = init_temperature
+        hyperparams['init_temperature'] = init_temperature
     if 'sampled_backup' in tuning_params:
         sampled_backup = trial.suggest_categorical('sampled_backup', [True, False])
-        hyperparams['agent_kwargs']['sampled_backup'] = sampled_backup
+        hyperparams['sampled_backup'] = sampled_backup
     # buffer_size: 1000000
     # use_her: true
     # n_her_samples: 4
@@ -244,16 +251,16 @@ def prior_droq_params(tuning_params: List[str]) -> Dict[str, Any]:
     """
     return {
         "actor_lr": 3e-4,
-        "critic_lr": 3e-4,
+        "critic_lr": 1e-4,
         "temp_lr": 3e-4,
         "hidden_dims": [256, 256],
         "discount": 0.99,
         "tau": 0.005,
-        "num_qs": 2,
-        "critic_dropout_rate": 0.01,
-        "critic_layer_norm": True,
-        "target_entropy": -1,
-        "init_temperature": 0.1,
+        "num_qs": 3,
+        "critic_dropout_rate": 0.002,
+        "critic_layer_norm": False,
+        "target_entropy": -3,
+        "init_temperature": 1,
         "sampled_backup": True,
         "buffer_size": 1000000,
         "n_her_samples": 4,
@@ -261,5 +268,5 @@ def prior_droq_params(tuning_params: List[str]) -> Dict[str, Any]:
         "handle_timeout_termination": True,
         "start_steps": 2000,
         "batch_size": 128,
-        "utd_ratio": 20,
+        "utd_ratio": 10,
     }
