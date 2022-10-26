@@ -1,7 +1,7 @@
 import flax.linen as nn
 import jax.numpy as jnp
 
-from human_robot_gym.rl.networks.common import default_init
+from n_dim_reach_env.rl.networks.common import default_init
 
 
 class StateActionValue(nn.Module):

@@ -1,4 +1,4 @@
-optimize: true
+optimize: false
 tuning_params: ["actor_lr", "critic_lr", "hidden_dims", "discount", "tau", "num_qs", "critic_dropout_rate", "critic_layer_norm"]
 n_trials: 50
 n_startup_trials: 1

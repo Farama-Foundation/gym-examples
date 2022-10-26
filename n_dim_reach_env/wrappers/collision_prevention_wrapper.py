@@ -18,6 +18,7 @@ class REPLACEMENT_TYPE(Enum):
     FAILSAFE = 1
     PROJECT = 2
 
+
 class CollisionPreventionWrapper(ActionWrapper):
     """Checks if the given action would result in a collision and replaces the unsafe action with another action."""
 

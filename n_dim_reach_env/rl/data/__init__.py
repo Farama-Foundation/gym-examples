@@ -1,1 +1,1 @@
-from human_robot_gym.rl.data.replay_buffer import ReplayBuffer
+from n_dim_reach_env.rl.data.replay_buffer import ReplayBuffer

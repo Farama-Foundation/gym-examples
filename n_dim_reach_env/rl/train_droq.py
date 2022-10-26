@@ -216,7 +216,8 @@ def train_droq(
         logging_info["reward"] += reward
         logging_info["max_reward"] = max(logging_info["max_reward"], reward)
         logging_info["n_collision"] = info["n_collision"]
-        logging_info["n_action_resamples"] = info["action_resamples"]
+        if "action_resample" in info:
+            logging_info["n_action_resamples"] = info["action_resamples"]
         logging_info["n_goal_reached"] = info["n_goal_reached"]
         logging_info["length"] += 1
 
