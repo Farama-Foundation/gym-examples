@@ -57,7 +57,6 @@ def create_env(env_args: EnvConfig) -> gym.Env:
                                      replace_type=env_args.replace_type,
                                      n_resamples=env_args.n_resamples,
                                      punishment=env_args.punishment)
-    env = SpeedActionWrapper(env)
     return env
 
 
