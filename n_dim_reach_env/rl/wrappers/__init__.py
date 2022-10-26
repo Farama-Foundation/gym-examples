@@ -1,8 +1,8 @@
 import gym
 from gym.wrappers.flatten_observation import FlattenObservation
 
-from human_robot_gym.rl.wrappers.single_precision import SinglePrecision
-from human_robot_gym.rl.wrappers.universal_seed import UniversalSeed
+from n_dim_reach_env.rl.wrappers.single_precision import SinglePrecision
+from n_dim_reach_env.rl.wrappers.universal_seed import UniversalSeed
 
 
 def wrap_gym(env: gym.Env, rescale_actions: bool = True) -> gym.Env:

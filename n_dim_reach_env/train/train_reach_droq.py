@@ -10,7 +10,6 @@ Changelog:
     5.9.22 JT Created File.
 """
 from copy import copy
-from typing import Any, Dict
 import gym  # noqa: F401
 import numpy as np
 
@@ -20,9 +19,10 @@ from hydra.core.config_store import ConfigStore
 from gym.wrappers import TimeLimit
 from gym import spaces
 
-from n_dim_reach_env.envs.reach_env import ReachEnv
+from n_dim_reach_env.envs.reach_env import ReachEnv  # noqa: F401
 from n_dim_reach_env.rl.optimization.optimize_hyperparameters import optimize_hyperparameters  # noqa: F401
 from n_dim_reach_env.wrappers.collision_prevention_wrapper import CollisionPreventionWrapper  # noqa: E501
+from n_dim_reach_env.wrappers.speed_action_wrapper import SpeedActionWrapper
 from n_dim_reach_env.conf.config_droq import DroQTrainingConfig, EnvConfig
 
 from n_dim_reach_env.rl.train_droq import train_droq
@@ -57,6 +57,7 @@ def create_env(env_args: EnvConfig) -> gym.Env:
                                      replace_type=env_args.replace_type,
                                      n_resamples=env_args.n_resamples,
                                      punishment=env_args.punishment)
+    env = SpeedActionWrapper(env)
     return env
 
 

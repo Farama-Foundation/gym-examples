@@ -4,7 +4,7 @@ import gym
 import gym.spaces
 import numpy as np
 
-from human_robot_gym.rl.data.dataset import Dataset, DatasetDict
+from n_dim_reach_env.rl.data.dataset import Dataset, DatasetDict
 
 
 def _init_replay_dict(obs_space: gym.Space,

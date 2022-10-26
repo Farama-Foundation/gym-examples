@@ -4,7 +4,7 @@ import numpy as np
 from flax.core import frozen_dict
 from gym.utils import seeding
 
-from human_robot_gym.rl.types import DataType
+from n_dim_reach_env.rl.types import DataType
 
 DatasetDict = Dict[str, DataType]
 

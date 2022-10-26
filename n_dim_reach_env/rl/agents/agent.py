@@ -6,7 +6,7 @@ import numpy as np
 from flax import struct
 from flax.training.train_state import TrainState
 
-from human_robot_gym.rl.types import PRNGKey
+from n_dim_reach_env.rl.types import PRNGKey
 
 
 @partial(jax.jit, static_argnames='apply_fn')

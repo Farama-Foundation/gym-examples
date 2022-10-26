@@ -1,4 +1,4 @@
-from human_robot_gym.rl.data.replay_buffer import ReplayBuffer
+from n_dim_reach_env.rl.data.replay_buffer import ReplayBuffer
 
 from typing import Dict, Iterable, Optional, Union, Any
 from enum import Enum
@@ -9,7 +9,7 @@ import gym.spaces
 import numpy as np
 from flax.core import frozen_dict
 
-from human_robot_gym.rl.data.dataset import DatasetDict, _sample
+from n_dim_reach_env.rl.data.dataset import DatasetDict, _sample
 
 
 class GoalSelectionStrategy(Enum):

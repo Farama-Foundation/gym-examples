@@ -10,12 +10,12 @@ import optax
 from flax import struct
 from flax.training.train_state import TrainState
 
-from human_robot_gym.rl.agents.agent import Agent
-from human_robot_gym.rl.agents.sac.temperature import Temperature
-from human_robot_gym.rl.data.dataset import DatasetDict
-from human_robot_gym.rl.distributions import TanhNormal
-from human_robot_gym.rl.networks import MLP, Ensemble, StateActionValue
-from human_robot_gym.rl.networks.common import soft_target_update
+from n_dim_reach_env.rl.agents.agent import Agent
+from n_dim_reach_env.rl.agents.sac.temperature import Temperature
+from n_dim_reach_env.rl.data.dataset import DatasetDict
+from n_dim_reach_env.rl.distributions import TanhNormal
+from n_dim_reach_env.rl.networks import MLP, Ensemble, StateActionValue
+from n_dim_reach_env.rl.networks.common import soft_target_update
 
 
 class SACLearner(Agent):
