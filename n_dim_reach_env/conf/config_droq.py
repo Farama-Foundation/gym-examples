@@ -26,6 +26,8 @@ class DroQConfig:
     goal_selection_strategy: str
     handle_timeout_termination: bool
     boost_single_demo: bool
+    pre_play_steps: int
+    pre_play_rate: float
     start_steps: int
     batch_size: int
     utd_ratio: int
@@ -99,6 +101,7 @@ class BoostSingleDemoConfig:
     ou_theta: float
     ou_dt: float
     proportional_constant: float
+
 
 @dataclass
 class DroQTrainingConfig:

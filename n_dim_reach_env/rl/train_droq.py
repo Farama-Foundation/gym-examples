@@ -47,6 +47,8 @@ def train_droq(
     handle_timeout_termination: bool = True,
     boost_single_demo: bool = False,
     boost_single_demo_kwargs: dict = {},
+    pre_play_steps: int = 0,
+    pre_play_rate: float = 0.0,
     utd_ratio: float = 1,
     batch_size: int = 256,
     buffer_size: int = 1000000,
@@ -103,6 +105,11 @@ def train_droq(
     """
     os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".80"
     print(jax.devices())
+    if pre_play_steps > 0 and not boost_single_demo:
+        print("WARNING: Pre-play steps can only be used together with boosting a single demonstration.\
+              Disabling pre-play.")
+        pre_play_steps = 0
+
     if load_from_folder is None:
         if use_wandb:
             run = wandb.init(
@@ -212,11 +219,16 @@ def train_droq(
         "length": 0
     }
     eval_at_next_done = False
+    max_pre_play_actions = 0
+    pre_play_action_counter = 0
     for i in tqdm.tqdm(range(start_i, int(max_steps)),
                        smoothing=0.1,
                        disable=not tqdm):
         if i < start_steps:
             action = env.action_space.sample()
+        elif i < start_steps + pre_play_steps and pre_play_action_counter <= max_pre_play_actions:
+            action = replay_buffer.get_artificial_action(pre_play_action_counter, observation["achieved_goal"])
+            pre_play_action_counter += 1
         else:
             if dict_obs:
                 action_observation = single_obs(observation)
@@ -300,7 +312,6 @@ def train_droq(
                 for k, v in update_info.items():
                     wandb.log({f'training/{k}': v}, step=i)
         if done:
-            observation, done = env.reset(), False
             if use_wandb:
                 for k, v in logging_info.items():
                     wandb.log({f'training/{k}': v}, step=i)
@@ -357,7 +368,17 @@ def train_droq(
                     os.path.join(buffer_dir, f'buffer_{i+1}'), 'wb'
                 ) as f:
                     pickle.dump(replay_buffer, f)
-                observation, done = env.reset(), False
+            observation, done = env.reset(), False
+            if i >= start_steps and i < start_steps + pre_play_steps:
+                r = np.random.rand()
+                if r < pre_play_rate:
+                    n_pre_play_actions = replay_buffer.initialize_artificial_trajectory(
+                        p_gen_start=observation["achieved_goal"],
+                        p_gen_goal=observation["desired_goal"]
+                    )
+                    max_pre_play_actions = np.random.randint(low=1, high=n_pre_play_actions)
+                    pre_play_action_counter = 0
+
     if use_wandb:
         run.finish()
     env.close()

@@ -17,6 +17,8 @@ n_her_samples: 4
 goal_selection_strategy: future
 handle_timeout_termination: true
 boost_single_demo: true
+pre_play_steps: 30000
+pre_play_rate: 0.5
 start_steps: 2000
 batch_size: 128
 utd_ratio: 10

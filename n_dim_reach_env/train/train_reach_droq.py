@@ -133,6 +133,8 @@ def main(cfg: DroQTrainingConfig):
         "handle_timeout_termination": cfg.droq.handle_timeout_termination,
         "boost_single_demo": cfg.droq.boost_single_demo,
         "boost_single_demo_kwargs": cfg.boost_single_demo,
+        "pre_play_steps": cfg.droq.pre_play_steps,
+        "pre_play_rate": cfg.droq.pre_play_rate,
         "utd_ratio": cfg.droq.utd_ratio,
         "batch_size": cfg.droq.batch_size,
         "buffer_size": cfg.droq.buffer_size,

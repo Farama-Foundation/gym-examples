@@ -136,33 +136,67 @@ class SingleDemoBooster(ReplayBuffer):
         self.create_artificial_demonstrations()
         env.render_mode = render_mode
 
-    def create_artificial_demonstrations(self):
-        """Create artificial demonstrations from the single demonstration."""
+    def initialize_artificial_trajectory(
+        self,
+        p_gen_start: np.ndarray,
+        p_gen_goal: np.ndarray
+    ) -> int:
+        """Initialize an artificial trajectory.
+
+        Args:
+            p_gen_start (np.ndarray): Start position of the trajectory to generate.
+            p_gen_goal (np.ndarray): Goal position of the trajectory to generate.
+
+        Returns:
+            length (int): Length of the trajectory to generate.
+        """
+        self.noise_prev = np.zeros(self.env.action_space.shape)
         p_rec_start = self.single_demo.transitions[0].obs["achieved_goal"]
         p_rec_goal = self.single_demo.transitions[-1].next_obs["achieved_goal"]
         max_dist_rec = np.max(np.abs(p_rec_goal - p_rec_start))
+        # a = (p_{gen, goal} - p_{gen_start})/(p_{rec, goal} - p_{rec_start})
+        if np.linalg.norm(p_rec_goal - p_rec_start) < 1e-6:
+            self.a = 1
+        else:
+            self.a = (p_gen_goal - p_gen_start) / (p_rec_goal - p_rec_start)
+        # Scale the number of time steps
+        # The of the trajectories depends on the longest distance in either direction.
+        max_dist_gen = np.max(np.abs(p_gen_goal - p_gen_start))
+        self.n_steps = int(self.single_demo.length * max_dist_gen/max_dist_rec) + 1
+        self.b = p_gen_start - self.a * p_rec_start
+        return self.n_steps
+
+    def get_artificial_action(
+        self,
+        step: int,
+        p_meas: np.ndarray
+    ) -> np.ndarray:
+        """Get an artificial action.
+
+        Args:
+            step (int): Current step.
+            p_meas (np.ndarray): Measured position.
+
+        Returns:
+            np.ndarray: Artificial action.
+        """
+        rec_idx = int(step / self.n_steps * self.single_demo.length)
+        p_rec = self.single_demo.transitions[rec_idx].next_obs["achieved_goal"]
+        p_gen = self.a * p_rec + self.b
+        action = self.proportional_constant * (p_gen - p_meas)
+        action = self.add_ou_noise(action)
+        action = np.clip(action, self.env.action_space.low, self.env.action_space.high)
+        return action
+
+    def create_artificial_demonstrations(self):
+        """Create artificial demonstrations from the single demonstration."""
         for _ in range(self.n_artificial_demonstrations):
             observation, done = self.env.reset(), False
             p_gen_goal = observation['desired_goal']
             p_gen_start = observation['achieved_goal']
-            # a = (p_{gen, goal} - p_{gen_start})/(p_{rec, goal} - p_{rec_start})
-            if np.linalg.norm(p_rec_goal - p_rec_start) < 1e-6:
-                a = 1
-            else:
-                a = (p_gen_goal - p_gen_start) / (p_rec_goal - p_rec_start)
-            # Scale the number of time steps
-            # The of the trajectories depends on the longest distance in either direction.
-            max_dist_gen = np.max(np.abs(p_gen_goal - p_gen_start))
-            n_steps = int(self.single_demo.length * max_dist_gen/max_dist_rec) + 1
-            b = p_gen_start - a * p_rec_start
-            for i in range(n_steps):
-                rec_idx = int(i / n_steps * self.single_demo.length)
-                p_rec = self.single_demo.transitions[rec_idx].next_obs["achieved_goal"]
-                p_meas = observation['achieved_goal']
-                p_gen = a * p_rec + b
-                action = self.proportional_constant * (p_gen - p_meas)
-                action = self.add_ou_noise(action)
-                action = np.clip(action, self.env.action_space.low, self.env.action_space.high)
+            self.initialize_artificial_trajectory(p_gen_start, p_gen_goal)
+            for i in range(self.n_steps):
+                action = self.get_artificial_action(i, observation['achieved_goal'])
                 next_observation, reward, done, info = self.env.step(action)
                 super().insert(
                     dict(observations=single_obs(observation),
@@ -172,7 +206,6 @@ class SingleDemoBooster(ReplayBuffer):
                          dones=done,
                          next_observations=single_obs(next_observation)))
                 observation = next_observation
-            self.noise_prev = np.zeros(self.env.action_space.shape)
 
     def add_ou_noise(self, action: np.ndarray) -> np.ndarray:
         """Add Ornstein-Uhlenbeck noise to the action.
