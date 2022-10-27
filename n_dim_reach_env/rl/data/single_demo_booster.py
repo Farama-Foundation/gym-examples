@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import List
 import gym
 import numpy as np
+from flax.core import frozen_dict
+from n_dim_reach_env.rl.data.dataset import DatasetDict
 
 from n_dim_reach_env.rl.data.replay_buffer import ReplayBuffer
 from n_dim_reach_env.rl.util.dict_conversion import single_obs
@@ -106,6 +108,8 @@ class SingleDemoBooster(ReplayBuffer):
             proportional_constant (float, optional): Proportional constant of the controller. Defaults to 0.1.
         """
         assert isinstance(env.observation_space, gym.spaces.Dict), 'Observation space must be a dictionary.'
+        render_mode = env.render_mode
+        env.render_mode = None
         if single_demo is not None:
             self.single_demo = single_demo
         else:
@@ -130,6 +134,7 @@ class SingleDemoBooster(ReplayBuffer):
 
         # Create artificial demonstrations from the single demonstration.
         self.create_artificial_demonstrations()
+        env.render_mode = render_mode
 
     def create_artificial_demonstrations(self):
         """Create artificial demonstrations from the single demonstration."""
@@ -159,7 +164,7 @@ class SingleDemoBooster(ReplayBuffer):
                 action = self.add_ou_noise(action)
                 action = np.clip(action, self.env.action_space.low, self.env.action_space.high)
                 next_observation, reward, done, info = self.env.step(action)
-                self.insert(
+                super().insert(
                     dict(observations=single_obs(observation),
                          actions=action,
                          rewards=reward,
@@ -182,3 +187,28 @@ class SingleDemoBooster(ReplayBuffer):
             self.ou_sigma * np.sqrt(self.ou_dt) * np.random.normal(size=self.ou_mean.shape)
         self.noise_prev = noise
         return action + noise
+
+    def insert(
+        self,
+        data_dict: DatasetDict,
+        **kwargs
+    ):
+        """Insert data into the replay buffer."""
+        self.replay_buffer.insert(data_dict, **kwargs)
+
+    def sample(
+        self,
+        batch_size: int,
+        **kwargs
+    ) -> frozen_dict.FrozenDict:
+        """Sample data from the replay buffer."""
+        human_batch = super().sample(
+            int(batch_size * self.human_demo_rate)
+        ).unfreeze()
+        normal_batch = self.replay_buffer.sample(
+            int(batch_size * (1 - self.human_demo_rate)),
+            **kwargs
+        ).unfreeze()
+        merged_batch = {key: np.append(human_batch.get(key, []), normal_batch.get(key, []), axis=0)
+                        for key in set(list(human_batch.keys())+list(normal_batch.keys()))}
+        return frozen_dict.freeze(merged_batch)
