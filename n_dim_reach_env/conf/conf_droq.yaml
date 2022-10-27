@@ -3,5 +3,6 @@ defaults:
   - env: reach
   - train: train
   - optimize: optimize
+  - boost_single_demo: boost_single_demo
 
 verbose: true

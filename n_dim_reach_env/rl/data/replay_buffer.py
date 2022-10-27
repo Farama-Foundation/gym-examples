@@ -84,6 +84,10 @@ class ReplayBuffer(Dataset):
         self._size = 0
         self._capacity = capacity
         self._insert_index = 0
+        self.observation_space = observation_space
+        self.action_space = action_space
+        self.next_observation_space = next_observation_space
+        self.achieved_goal_space = achieved_goal_space        
 
     def __len__(self) -> int:
         return self._size

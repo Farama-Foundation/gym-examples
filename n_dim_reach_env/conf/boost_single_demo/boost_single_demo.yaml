@@ -1,0 +1,7 @@
+n_artificial_demonstrations: 100
+human_demo_rate: 0.25
+ou_mean: 0.0
+ou_sigma: 0.02
+ou_theta: 0.15
+ou_dt: 0.01
+proportional_constant: 1

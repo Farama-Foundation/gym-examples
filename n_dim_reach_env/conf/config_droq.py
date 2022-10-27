@@ -25,6 +25,7 @@ class DroQConfig:
     n_her_samples: int
     goal_selection_strategy: str
     handle_timeout_termination: bool
+    boost_single_demo: bool
     start_steps: int
     batch_size: int
     utd_ratio: int
@@ -88,6 +89,18 @@ class OptimizeConfig:
 
 
 @dataclass
+class BoostSingleDemoConfig:
+    """Single Demo Booster settings."""
+
+    n_artificial_demonstrations: int
+    human_demo_rate: float
+    ou_mean: float
+    ou_sigma: float
+    ou_theta: float
+    ou_dt: float
+    proportional_constant: float
+
+@dataclass
 class DroQTrainingConfig:
     """Training config."""
 
@@ -95,4 +108,5 @@ class DroQTrainingConfig:
     env: EnvConfig
     train: TrainConfig
     optimize: OptimizeConfig
+    boost_single_demo: BoostSingleDemoConfig
     verbose: bool

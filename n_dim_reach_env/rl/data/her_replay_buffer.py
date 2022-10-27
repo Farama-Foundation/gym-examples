@@ -1,3 +1,5 @@
+"""This file defines the HER replay buffer."""
+
 from n_dim_reach_env.rl.data.replay_buffer import ReplayBuffer
 
 from typing import Dict, Iterable, Optional, Union, Any
@@ -13,10 +15,7 @@ from n_dim_reach_env.rl.data.dataset import DatasetDict, _sample
 
 
 class GoalSelectionStrategy(Enum):
-    """
-    The strategies for selecting new goals when
-    creating artificial transitions.
-    """
+    """The strategies for selecting new goals when creating artificial transitions."""
 
     # Select a goal that was achieved
     # after the current step, in the same episode

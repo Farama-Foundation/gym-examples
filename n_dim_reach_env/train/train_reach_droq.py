@@ -22,7 +22,7 @@ from gym import spaces
 from n_dim_reach_env.envs.reach_env import ReachEnv  # noqa: F401
 from n_dim_reach_env.rl.optimization.optimize_hyperparameters import optimize_hyperparameters  # noqa: F401
 from n_dim_reach_env.wrappers.collision_prevention_wrapper import CollisionPreventionWrapper  # noqa: E501
-from n_dim_reach_env.wrappers.speed_action_wrapper import SpeedActionWrapper
+# from n_dim_reach_env.wrappers.speed_action_wrapper import SpeedActionWrapper
 from n_dim_reach_env.conf.config_droq import DroQTrainingConfig, EnvConfig
 
 from n_dim_reach_env.rl.train_droq import train_droq
@@ -131,6 +131,8 @@ def main(cfg: DroQTrainingConfig):
         "n_her_samples": cfg.droq.n_her_samples,
         "goal_selection_strategy": cfg.droq.goal_selection_strategy,
         "handle_timeout_termination": cfg.droq.handle_timeout_termination,
+        "boost_single_demo": cfg.droq.boost_single_demo,
+        "boost_single_demo_kwargs": cfg.boost_single_demo,
         "utd_ratio": cfg.droq.utd_ratio,
         "batch_size": cfg.droq.batch_size,
         "buffer_size": cfg.droq.buffer_size,

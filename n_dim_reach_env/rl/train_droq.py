@@ -26,6 +26,7 @@ from n_dim_reach_env.rl.util.action_scaling import scale_action, unscale_action
 from n_dim_reach_env.rl.agents import SACLearner
 from n_dim_reach_env.rl.data import ReplayBuffer
 from n_dim_reach_env.rl.data.her_replay_buffer import HEReplayBuffer
+from n_dim_reach_env.rl.data.single_demo_booster import SingleDemoBooster
 from n_dim_reach_env.rl.evaluation import evaluate  # noqa: F401
 
 
@@ -44,6 +45,8 @@ def train_droq(
     n_her_samples: int = 4,
     goal_selection_strategy: str = "future",
     handle_timeout_termination: bool = True,
+    boost_single_demo: bool = False,
+    boost_single_demo_kwargs: dict = {},
     utd_ratio: float = 1,
     batch_size: int = 256,
     buffer_size: int = 1000000,
@@ -77,6 +80,9 @@ def train_droq(
         n_her_samples (int, optional): The number of HER samples to generate per transition. Defaults to 4.
         goal_selection_strategy (str, optional): The goal selection strategy to use for HER. Defaults to "future".
         handle_timeout_termination (bool, optional): Whether to handle the timeout termination signal. Defaults to True.
+        boost_single_demo (bool, optional): Whether to use a single demonstration to boost training. Defaults to False.
+        boost_single_demo_kwargs (dict, optional): Additional keyword arguments to pass to the single demonstration
+            booster. Defaults to {}.
         utd_ratio (float, optional): The update to data ratio. Defaults to 1.
         batch_size (int, optional): The batch size to use for training. Defaults to 256.
         buffer_size (int, optional): The size of the replay buffer. Defaults to 1000000.
@@ -179,6 +185,17 @@ def train_droq(
         agent = checkpoints.restore_checkpoint(last_checkpoint, agent)
         with open(os.path.join(buffer_dir, f'buffer_{start_i}'), 'rb') as f:
             replay_buffer = pickle.load(f)
+
+    # Single demonstration booster
+    if boost_single_demo:
+        replay_buffer = SingleDemoBooster(
+            env=env,
+            replay_buffer=replay_buffer,
+            observation_space=observation_space,
+            action_space=env.action_space,
+            single_demo=None,
+            **boost_single_demo_kwargs
+        )
 
     eval_env = gym.wrappers.RecordEpisodeStatistics(
         eval_env,

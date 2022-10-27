@@ -1,0 +1,184 @@
+"""This file describes a single demo booster for DroQ with HER."""
+
+from dataclasses import dataclass
+from typing import List
+import gym
+import numpy as np
+
+from n_dim_reach_env.rl.data.replay_buffer import ReplayBuffer
+from n_dim_reach_env.rl.util.dict_conversion import single_obs
+
+
+@dataclass
+class Transition:
+    """A single transition in the replay buffer."""
+
+    obs: np.ndarray
+    action: np.ndarray
+    reward: float
+    next_obs: np.ndarray
+    done: bool
+    info: dict
+
+
+@dataclass
+class Demonstration:
+    """A single demonstration."""
+
+    length: int
+    transitions: List[Transition]
+
+
+def create_single_demo(env: gym.Env) -> Demonstration:
+    """Create a single human demonstration.
+
+    Args:
+        env (gym.Env): Environment.
+
+    Returns:
+        Demonstration: Single human demonstration.
+    """
+    demo = Demonstration(length=0, transitions=[])
+    demo_length = -1
+    while demo_length < 5:
+        observation, done = env.reset(), False
+        desired_goal = observation['desired_goal']
+        current_pos = observation['achieved_goal']
+        demo_length = np.ceil(np.max(np.abs(current_pos - desired_goal)/np.abs(env.action_space.high)))
+    start = current_pos
+    goal = desired_goal
+    delta = (goal - start)/demo_length
+    for _ in range(int(demo_length)):
+        desired_goal = observation['desired_goal']
+        current_pos = observation['achieved_goal']
+        action = np.clip(delta, env.action_space.low, env.action_space.high)
+        next_observation, reward, done, info = env.step(action)
+        demo.transitions.append(Transition(
+            obs=observation,
+            action=action,
+            reward=reward,
+            next_obs=next_observation,
+            done=done,
+            info=info
+        ))
+        demo.length += 1
+        observation = next_observation
+    return demo
+
+
+class SingleDemoBooster(ReplayBuffer):
+    """Define a Replay Buffer that includes artificial human demonstrations.
+
+    The key idea is to create multiple artificial human demonstrations from a single human demonstration.
+    The self replay buffer is used to store the artificial human demonstrations.
+    self.replay_buffer is used to store the original data.
+    """
+
+    def __init__(
+        self,
+        env: gym.Env,
+        replay_buffer: ReplayBuffer,
+        observation_space: gym.Space,
+        action_space: gym.Space,
+        single_demo: Demonstration = None,
+        n_artificial_demonstrations: int = 100,
+        human_demo_rate: float = 0.25,
+        ou_mean: float = 0.0,
+        ou_sigma: float = 0.01,
+        ou_theta: float = 0.15,
+        ou_dt: float = 1e-2,
+        proportional_constant: float = 0.1
+    ):
+        """Initialize the single demonstration booster.
+
+        Args:
+            env (gym.Env): Environment.
+            replay_buffer (ReplayBuffer): Replay buffer.
+            observation_space (gym.Space): Observation space.
+            action_space (gym.Space): Action space.
+            single_demo (Demonstration, optional): Single human demonstration. Defaults to None.
+            n_artificial_demonstrations (int, optional): Number of artificial demonstrations. Defaults to 100.
+            human_demo_rate (float, optional): Rate of human demonstrations. Defaults to 0.25.
+            ou_mean (float, optional): Ornstein-Uhlenbeck mean. Defaults to 0.0.
+            ou_sigma (float, optional): Ornstein-Uhlenbeck sigma. Defaults to 0.2.
+            ou_theta (float, optional): Ornstein-Uhlenbeck theta. Defaults to 0.15.
+            ou_dt (float, optional): Ornstein-Uhlenbeck dt. Defaults to 1e-2.
+            proportional_constant (float, optional): Proportional constant of the controller. Defaults to 0.1.
+        """
+        assert isinstance(env.observation_space, gym.spaces.Dict), 'Observation space must be a dictionary.'
+        if single_demo is not None:
+            self.single_demo = single_demo
+        else:
+            self.single_demo = create_single_demo(env)
+        capacity = self.single_demo.length * n_artificial_demonstrations
+        super().__init__(
+            observation_space=observation_space,
+            action_space=action_space,
+            capacity=capacity,
+            next_observation_space=observation_space
+        )
+        self.env = env
+        self.replay_buffer = replay_buffer
+        self.n_artificial_demonstrations = n_artificial_demonstrations
+        self.human_demo_rate = human_demo_rate
+        self.ou_mean = np.full(self.env.action_space.shape, ou_mean)
+        self.ou_sigma = ou_sigma
+        self.ou_theta = ou_theta
+        self.ou_dt = ou_dt
+        self.noise_prev = np.zeros(self.env.action_space.shape)
+        self.proportional_constant = proportional_constant
+
+        # Create artificial demonstrations from the single demonstration.
+        self.create_artificial_demonstrations()
+
+    def create_artificial_demonstrations(self):
+        """Create artificial demonstrations from the single demonstration."""
+        p_rec_start = self.single_demo.transitions[0].obs["achieved_goal"]
+        p_rec_goal = self.single_demo.transitions[-1].next_obs["achieved_goal"]
+        max_dist_rec = np.max(np.abs(p_rec_goal - p_rec_start))
+        for _ in range(self.n_artificial_demonstrations):
+            observation, done = self.env.reset(), False
+            p_gen_goal = observation['desired_goal']
+            p_gen_start = observation['achieved_goal']
+            # a = (p_{gen, goal} - p_{gen_start})/(p_{rec, goal} - p_{rec_start})
+            if np.linalg.norm(p_rec_goal - p_rec_start) < 1e-6:
+                a = 1
+            else:
+                a = (p_gen_goal - p_gen_start) / (p_rec_goal - p_rec_start)
+            # Scale the number of time steps
+            # The of the trajectories depends on the longest distance in either direction.
+            max_dist_gen = np.max(np.abs(p_gen_goal - p_gen_start))
+            n_steps = int(self.single_demo.length * max_dist_gen/max_dist_rec) + 1
+            b = p_gen_start - a * p_rec_start
+            for i in range(n_steps):
+                rec_idx = int(i / n_steps * self.single_demo.length)
+                p_rec = self.single_demo.transitions[rec_idx].next_obs["achieved_goal"]
+                p_meas = observation['achieved_goal']
+                p_gen = a * p_rec + b
+                action = self.proportional_constant * (p_gen - p_meas)
+                action = self.add_ou_noise(action)
+                action = np.clip(action, self.env.action_space.low, self.env.action_space.high)
+                next_observation, reward, done, info = self.env.step(action)
+                self.insert(
+                    dict(observations=single_obs(observation),
+                         actions=action,
+                         rewards=reward,
+                         masks=not done,
+                         dones=done,
+                         next_observations=single_obs(next_observation)))
+                observation = next_observation
+            self.noise_prev = np.zeros(self.env.action_space.shape)
+
+    def add_ou_noise(self, action: np.ndarray) -> np.ndarray:
+        """Add Ornstein-Uhlenbeck noise to the action.
+
+        Args:
+            action (np.ndarray): Action.
+
+        Returns:
+            np.ndarray: Action with noise.
+        """
+        noise = self.noise_prev + self.ou_theta * (self.ou_mean - self.noise_prev) * self.ou_dt +\
+            self.ou_sigma * np.sqrt(self.ou_dt) * np.random.normal(size=self.ou_mean.shape)
+        self.noise_prev = noise
+        return action + noise
