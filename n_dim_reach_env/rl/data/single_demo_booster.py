@@ -121,19 +121,20 @@ class SingleDemoBooster(ReplayBuffer):
             capacity=capacity,
             next_observation_space=observation_space
         )
-        self.env = env
         self.replay_buffer = replay_buffer
         self.n_artificial_demonstrations = n_artificial_demonstrations
         self.human_demo_rate = human_demo_rate
-        self.ou_mean = np.full(self.env.action_space.shape, ou_mean)
+        self.ou_mean = np.full(env.action_space.shape, ou_mean)
         self.ou_sigma = ou_sigma
         self.ou_theta = ou_theta
         self.ou_dt = ou_dt
-        self.noise_prev = np.zeros(self.env.action_space.shape)
+        self.noise_prev = np.zeros(self.ou_mean.shape)
         self.proportional_constant = proportional_constant
+        self.action_low = env.action_space.low
+        self.action_high = env.action_space.high
 
         # Create artificial demonstrations from the single demonstration.
-        self.create_artificial_demonstrations()
+        self.create_artificial_demonstrations(env)
         env.render_mode = render_mode
 
     def initialize_artificial_trajectory(
@@ -150,7 +151,7 @@ class SingleDemoBooster(ReplayBuffer):
         Returns:
             length (int): Length of the trajectory to generate.
         """
-        self.noise_prev = np.zeros(self.env.action_space.shape)
+        self.noise_prev = np.zeros(self.ou_mean.shape)
         p_rec_start = self.single_demo.transitions[0].obs["achieved_goal"]
         p_rec_goal = self.single_demo.transitions[-1].next_obs["achieved_goal"]
         max_dist_rec = np.max(np.abs(p_rec_goal - p_rec_start))
@@ -185,19 +186,23 @@ class SingleDemoBooster(ReplayBuffer):
         p_gen = self.a * p_rec + self.b
         action = self.proportional_constant * (p_gen - p_meas)
         action = self.add_ou_noise(action)
-        action = np.clip(action, self.env.action_space.low, self.env.action_space.high)
+        action = np.clip(action, self.action_low, self.action_high)
         return action
 
-    def create_artificial_demonstrations(self):
-        """Create artificial demonstrations from the single demonstration."""
+    def create_artificial_demonstrations(self, env: gym.Env):
+        """Create artificial demonstrations from the single demonstration.
+        
+        Args:
+            env (gym.Env): Environment.
+        """
         for _ in range(self.n_artificial_demonstrations):
-            observation, done = self.env.reset(), False
+            observation, done = env.reset(), False
             p_gen_goal = observation['desired_goal']
             p_gen_start = observation['achieved_goal']
             self.initialize_artificial_trajectory(p_gen_start, p_gen_goal)
             for i in range(self.n_steps):
                 action = self.get_artificial_action(i, observation['achieved_goal'])
-                next_observation, reward, done, info = self.env.step(action)
+                next_observation, reward, done, info = env.step(action)
                 super().insert(
                     dict(observations=single_obs(observation),
                          actions=action,
