@@ -149,8 +149,8 @@ class HEReplayBuffer(ReplayBuffer):
         # Remove termination signals due to timeout
         done = data_dict["dones"]
         # If the environment changed the action.
-        # if "action" in infos:
-        #     data_dict["actions"] = infos["action"]
+        if "action" in infos:
+            data_dict["actions"] = infos["action"]
         # Info buffer full handling
         if self.current_idx == 0 and self.full:
             # Clear info buffer
