@@ -223,11 +223,14 @@ def train_droq(
     for i in tqdm.tqdm(range(start_i, int(max_steps)),
                        smoothing=0.1,
                        disable=not tqdm):
+        # Start steps with random actions
         if i < start_steps:
             action = env.action_space.sample()
+        # Potential pre-play steps
         elif i < start_steps + pre_play_steps and pre_play_action_counter <= max_pre_play_actions:
             action = replay_buffer.get_artificial_action(pre_play_action_counter, observation["achieved_goal"])
             pre_play_action_counter += 1
+        # Normal agent actions
         else:
             if dict_obs:
                 action_observation = single_obs(observation)

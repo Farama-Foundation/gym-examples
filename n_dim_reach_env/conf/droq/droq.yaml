@@ -8,7 +8,7 @@ num_qs: 3
 num_min_qs: null
 critic_dropout_rate: 0.04
 critic_layer_norm: false
-target_entropy: -1
+target_entropy: -3
 init_temperature: 0.1
 sampled_backup: true
 buffer_size: 1000000
