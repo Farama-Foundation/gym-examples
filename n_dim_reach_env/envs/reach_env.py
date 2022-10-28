@@ -20,7 +20,7 @@ class ReachEnv(gym.GoalEnv):
         - adjustable dimensionality.
     """
 
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
     def __init__(self,
                  n_dim: int = 2,
@@ -105,8 +105,6 @@ class ReachEnv(gym.GoalEnv):
         """
         assert (render_mode is None or
                 render_mode in self.metadata["render_modes"])
-        # We can only render dimension 2 right now.
-        assert (self.n_dim == 2 or render_mode is None)
         self.render_mode = render_mode
         self.window = None
         self.clock = None
