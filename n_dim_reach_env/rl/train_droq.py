@@ -156,6 +156,16 @@ def train_droq(
                 buffer_size
             )
         replay_buffer.seed(seed)
+        # Single demonstration booster
+        if boost_single_demo:
+            replay_buffer = SingleDemoBooster(
+                env=env,
+                replay_buffer=replay_buffer,
+                observation_space=observation_space,
+                action_space=env.action_space,
+                single_demo=None,
+                **boost_single_demo_kwargs
+            )
     else:
         chkpt_dir = load_from_folder + 'saved/checkpoints/'
         buffer_dir = load_from_folder + 'saved/buffers/'
@@ -192,17 +202,6 @@ def train_droq(
         agent = checkpoints.restore_checkpoint(last_checkpoint, agent)
         with open(os.path.join(buffer_dir, f'buffer_{start_i}'), 'rb') as f:
             replay_buffer = pickle.load(f)
-
-    # Single demonstration booster
-    if boost_single_demo:
-        replay_buffer = SingleDemoBooster(
-            env=env,
-            replay_buffer=replay_buffer,
-            observation_space=observation_space,
-            action_space=env.action_space,
-            single_demo=None,
-            **boost_single_demo_kwargs
-        )
 
     eval_env = gym.wrappers.RecordEpisodeStatistics(
         eval_env,
