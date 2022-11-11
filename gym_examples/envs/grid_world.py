@@ -24,8 +24,8 @@ class GridWorldEnv(gym.Env):
         self.action_space = spaces.Discrete(4)
 
         """
-        The following dictionary maps abstract actions from `self.action_space` to 
-        the direction we will walk in if that action is taken.
+        The following dictionary maps abstract actions from `self.action_space`
+        to the direction we will walk in if that action is taken.
         I.e. 0 corresponds to "right", 1 to "up" etc.
         """
         self._action_to_direction = {
