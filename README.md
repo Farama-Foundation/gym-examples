@@ -1,13 +1,13 @@
 # Gym Examples
 Some simple examples of Gym environments and wrappers.
-For some explanations of these examples, see the [Gym documentation](https://www.gymlibrary.ml).
+For some explanations of these examples, see the [Gym documentation](https://gymnasium.farama.org).
 
 ### Environments
-This repository hosts the examples that are shown [on the environment creation documentation](https://www.gymlibrary.ml/pages/environment_creation/index).
+This repository hosts the examples that are shown [on the environment creation documentation](https://gymnasium.farama.org/tutorials/environment_creation/).
 - `GridWorldEnv`: Simplistic implementation of gridworld environment
 
 ### Wrappers
-This repository hosts the examples that are shown [on wrapper documentation](https://www.gymlibrary.ml/pages/wrappers/index).
+This repository hosts the examples that are shown [on wrapper documentation](https://gymnasium.farama.org/api/wrappers/).
 - `ClipReward`: A `RewardWrapper` that clips immediate rewards to a valid range
 - `DiscreteActions`: An `ActionWrapper` that restricts the action space to a finite subset
 - `RelativePosition`: An `ObservationWrapper` that computes the relative position between an agent and a target
