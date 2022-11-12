@@ -8,11 +8,12 @@ class GridWorldEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode=None, size=5):
-        self.size = size  # The size of the square grid
-        self.window_size = 512  # The size of the PyGame window
+        self.size = size  # The size of the square grid.
+        self.window_size = 512  # The size of the PyGame window.
 
         # Observations are dictionaries with the agent's and the target's location.
-        # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
+        # Each location is encoded as an element of {0, ..., `size`}^2,
+        # i.e. MultiDiscrete([size, size]).
         self.observation_space = spaces.Dict(
             {
                 "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
@@ -20,7 +21,7 @@ class GridWorldEnv(gym.Env):
             }
         )
 
-        # We have 4 actions, corresponding to "right", "up", "left", "down", "right"
+        # We have 4 actions, corresponding to "right", "up", "left", "down".
         self.action_space = spaces.Discrete(4)
 
         """
@@ -59,13 +60,14 @@ class GridWorldEnv(gym.Env):
         }
 
     def reset(self, seed=None, options=None):
-        # We need the following line to seed self.np_random
+        # We need the following line to seed self.np_random.
         super().reset(seed=seed)
 
-        # Choose the agent's location uniformly at random
+        # Choose the agent's location uniformly at random.
         self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
 
-        # We will sample the target's location randomly until it does not coincide with the agent's location
+        # We will sample the target's location randomly until it does not coincide
+        # with the agent's location.
         self._target_location = self._agent_location
         while np.array_equal(self._target_location, self._agent_location):
             self._target_location = self.np_random.integers(
@@ -81,15 +83,15 @@ class GridWorldEnv(gym.Env):
         return observation, info
 
     def step(self, action):
-        # Map the action (element of {0,1,2,3}) to the direction we walk in
+        # Map the action (element of {0,1,2,3}) to the direction we walk in.
         direction = self._action_to_direction[action]
-        # We use `np.clip` to make sure we don't leave the grid
+        # We use `np.clip` to make sure we don't leave the grid.
         self._agent_location = np.clip(
             self._agent_location + direction, 0, self.size - 1
         )
-        # An episode is done iff the agent has reached the target
+        # An episode is done iff the agent has reached the target.
         terminated = np.array_equal(self._agent_location, self._target_location)
-        reward = 1 if terminated else 0  # Binary sparse rewards
+        reward = 1 if terminated else 0  # Binary sparse rewards.
         observation = self._get_obs()
         info = self._get_info()
 
@@ -114,9 +116,9 @@ class GridWorldEnv(gym.Env):
         canvas.fill((255, 255, 255))
         pix_square_size = (
             self.window_size / self.size
-        )  # The size of a single grid square in pixels
+        )  # The size of a single grid square in pixels.
 
-        # First we draw the target
+        # First we draw the target.
         pygame.draw.rect(
             canvas,
             (255, 0, 0),
@@ -125,7 +127,7 @@ class GridWorldEnv(gym.Env):
                 (pix_square_size, pix_square_size),
             ),
         )
-        # Now we draw the agent
+        # Now we draw the agent.
         pygame.draw.circle(
             canvas,
             (0, 0, 255),
@@ -133,7 +135,7 @@ class GridWorldEnv(gym.Env):
             pix_square_size / 3,
         )
 
-        # Finally, add some gridlines
+        # Finally, add some gridlines.
         for x in range(self.size + 1):
             pygame.draw.line(
                 canvas,
@@ -151,13 +153,15 @@ class GridWorldEnv(gym.Env):
             )
 
         if self.render_mode == "human":
-            # The following line copies our drawings from `canvas` to the visible window
+            # The following line copies our drawings from `canvas` to the
+            # visible window.
             self.window.blit(canvas, canvas.get_rect())
             pygame.event.pump()
             pygame.display.update()
 
             # We need to ensure that human-rendering occurs at the predefined framerate.
-            # The following line will automatically add a delay to keep the framerate stable.
+            # The following line will automatically add a delay to keep the
+            # framerate stable.
             self.clock.tick(self.metadata["render_fps"])
         else:  # rgb_array
             return np.transpose(
