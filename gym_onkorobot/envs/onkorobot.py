@@ -1,27 +1,35 @@
+from typing import Optional
+
 import gymnasium as gym
 from gymnasium import spaces
 import pygame
 import numpy as np
 from gymnasium.spaces import Box, Discrete
+from gym_onkorobot.core.actions import Actions
+from gym_onkorobot.utils.window import Window
 
 ACTION_SHAPE = (3, 1)
 
 
 class OnkoRobotEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
+    metadata = {"render_modes": ["human"], "render_fps": 4}
 
     def __init__(self, render_mode=None,
                  point_cloud=None):
-        self.window_size = 512  # The size of the PyGame window
+        # TODO:
+        cloud_space = spaces.Box(low=0,
+                                 high=255,
+                                 shape=(100, 100, 100, 3),
+                                 dtype="uint8",
+                                 )
+        self.observation_space = spaces.Dict({
+            "cloud": cloud_space
+        })
+        # action description
+        self.actions = Actions
+        self.action_space = spaces.Discrete(len(self.actions))
 
-        # TODO
-        self.observation_space = spaces.Dict()
-
-        # We have action [ [x, y, z], t ], where x, y, z - offset of current pos and t - time of dose
-        self.action_space = spaces.Tuple((
-            Box(-1, 1, shape=(3,)),
-            Discrete(1)
-        ))
+        self.reward_range = (0, 1)
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -33,8 +41,9 @@ class OnkoRobotEnv(gym.Env):
         human-mode. They will remain `None` until human-mode is used for the
         first time.
         """
-        self.window = None
+        self.window: Optional[Window] = None
         self.clock = None
+        # init grid
 
     def _get_obs(self):
         # TODO: return point cloud
@@ -84,77 +93,13 @@ class OnkoRobotEnv(gym.Env):
         info = self._get_info()
 
         if self.render_mode == "human":
-            self._render_frame()
+            self.render()
 
         return observation, reward, terminated, False, info
 
     def render(self):
-        if self.render_mode == "rgb_array":
-            return self._render_frame()
-
-    def _render_frame(self):
-        if self.window is None and self.render_mode == "human":
-            pygame.init()
-            pygame.display.init()
-            self.window = pygame.display.set_mode((self.window_size, self.window_size))
-        if self.clock is None and self.render_mode == "human":
-            self.clock = pygame.time.Clock()
-
-        canvas = pygame.Surface((self.window_size, self.window_size))
-        canvas.fill((255, 255, 255))
-        pix_square_size = (
-            self.window_size / self.size
-        )  # The size of a single grid square in pixels
-
-        # First we draw the target
-        pygame.draw.rect(
-            canvas,
-            (255, 0, 0),
-            pygame.Rect(
-                pix_square_size * self._target_location,
-                (pix_square_size, pix_square_size),
-            ),
-        )
-        # Now we draw the agent
-        pygame.draw.circle(
-            canvas,
-            (0, 0, 255),
-            (self._agent_location + 0.5) * pix_square_size,
-            pix_square_size / 3,
-        )
-
-        # Finally, add some gridlines
-        for x in range(self.size + 1):
-            pygame.draw.line(
-                canvas,
-                0,
-                (0, pix_square_size * x),
-                (self.window_size, pix_square_size * x),
-                width=3,
-            )
-            pygame.draw.line(
-                canvas,
-                0,
-                (pix_square_size * x, 0),
-                (pix_square_size * x, self.window_size),
-                width=3,
-            )
-
-        if self.render_mode == "human":
-            # The following line copies our drawings from `canvas` to the visible window
-            self.window.blit(canvas, canvas.get_rect())
-            pygame.event.pump()
-            pygame.display.update()
-
-            # We need to ensure that human-rendering occurs at the predefined framerate.
-            # The following line will automatically add a delay to keep the framerate stable.
-            self.clock.tick(self.metadata["render_fps"])
-        else:  # rgb_array
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-            )
+        pass
 
     def close(self):
         if self.window is not None:
-            pygame.display.quit()
-            pygame.quit()
+            self.window.close()
