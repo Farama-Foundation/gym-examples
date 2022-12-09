@@ -7,7 +7,7 @@
 ### Action Space
 
 The action is a `ndarray` with shape `(4,)`. it looks like: `{x, y, z, d}`.
-   
+
 | NUM | Action                                    | Type         | Min  | Max |
 |-----|-------------------------------------------|--------------|------|-----|
 | X   | Step on the X-axis from the current state | Сontinuously | -Inf | Inf |

@@ -14,17 +14,15 @@ ACTION_SHAPE = (3, 1)
 class OnkoRobotEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 4}
 
-    def __init__(self, render_mode=None,
-                 point_cloud=None):
+    def __init__(self, render_mode=None, point_cloud=None):
         # TODO:
-        cloud_space = spaces.Box(low=0,
-                                 high=255,
-                                 shape=(100, 100, 100, 3),
-                                 dtype="uint8",
-                                 )
-        self.observation_space = spaces.Dict({
-            "cloud": cloud_space
-        })
+        cloud_space = spaces.Box(
+            low=0,
+            high=255,
+            shape=(100, 100, 100, 3),
+            dtype="uint8",
+        )
+        self.observation_space = spaces.Dict({"cloud": cloud_space})
         # action description
         self.actions = Actions
         self.action_space = spaces.Discrete(len(self.actions))

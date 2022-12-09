@@ -18,10 +18,11 @@ class Window:
     def __init__(self, title: str):
         self.title = title
         self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(projection='3d')
+        self.ax = self.fig.add_subplot(projection="3d")
         X, Y, Z = axes3d.get_test_data(0.05)
-        self.ax.plot_surface(X, Y, Z, edgecolor='royalblue', lw=0.5, rstride=8, cstride=8,
-                             alpha=0.3)
+        self.ax.plot_surface(
+            X, Y, Z, edgecolor="royalblue", lw=0.5, rstride=8, cstride=8, alpha=0.3
+        )
         self.closed = False
 
     def show(self, block=True):
@@ -43,7 +44,7 @@ class Window:
         self.closed = True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     w = Window("test")
     w.show(block=True)
     w.close()

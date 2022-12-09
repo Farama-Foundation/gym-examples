@@ -1,10 +1,7 @@
 import numpy as np
 
 # Map of state names to integers
-STATE_TO_IDX = {
-    "sore": 0,
-    "healthy": 1
-}
+STATE_TO_IDX = {"sore": 0, "healthy": 1}
 # Map of agent direction indices to vectors
 # TODO
 DIR_TO_VEC = [
