@@ -9,3 +9,4 @@ class Actions(IntEnum):
     up = 3
     down = 4
     dose = 5
+    done = 6
