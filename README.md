@@ -1,6 +1,6 @@
-# Gym Examples
-Some simple examples of Gym environments and wrappers.
-For some explanations of these examples, see the [Gym documentation](https://gymnasium.farama.org).
+# Gymnasium Examples (as Gym is now Gymnasium)
+Some simple examples of Gymnasium environments and wrappers.
+For some explanations of these examples, see the [Gymnasium documentation](https://gymnasium.farama.org).
 
 ### Environments
 This repository hosts the examples that are shown [on the environment creation documentation](https://gymnasium.farama.org/tutorials/environment_creation/).
