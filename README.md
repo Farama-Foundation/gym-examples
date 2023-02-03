@@ -1,22 +1,60 @@
-# Gym Examples
-Some simple examples of Gym environments and wrappers.
-For some explanations of these examples, see the [Gym documentation](https://gymnasium.farama.org).
+# Gym-onkorobot
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-### Environments
-This repository hosts the examples that are shown [on the environment creation documentation](https://gymnasium.farama.org/tutorials/environment_creation/).
-- `GridWorldEnv`: Simplistic implementation of gridworld environment
+### Description
+    Solve the problem of dose determination with reinforcement learning.
 
-### Wrappers
-This repository hosts the examples that are shown [on wrapper documentation](https://gymnasium.farama.org/api/wrappers/).
-- `ClipReward`: A `RewardWrapper` that clips immediate rewards to a valid range
-- `DiscreteActions`: An `ActionWrapper` that restricts the action space to a finite subset
-- `RelativePosition`: An `ObservationWrapper` that computes the relative position between an agent and a target
-- `ReacherRewardWrapper`: Allow us to weight the reward terms for the reacher environment
+### Action Space
 
-### Contributing
-If you would like to contribute, follow these steps:
-- Fork this repository
-- Clone your fork
-- Set up pre-commit via `pre-commit install`
+The action is a `ndarray` with shape `(4,)`. it looks like: `{x, y, z, d}`.
 
-PRs may require accompanying PRs in [the documentation repo](https://github.com/Farama-Foundation/Gymnasium/tree/main/docs).
+| NUM | Action                                    | Type         | Min  | Max |
+|-----|-------------------------------------------|--------------|------|-----|
+| X   | Step on the X-axis from the current state | Сontinuously | -Inf | Inf |
+| Y   | Step on the y-axis from the current state | Сontinuously | -Inf | Inf |
+| Z   | Step on the Z-axis from the current state | Сontinuously | -Inf | Inf |
+| D   | Dose to current point                     | Discrete     | 0    | 1   |
+
+
+### Observation Space
+
+The observation is an array with shape `(X, Y, Z, K)` with the values corresponding to the following positions and velocities:
+
+| Num | Observation   | Min | Max |
+|-----|---------------|-----|-----|
+| X   | Cart Position | 0   | Inf |
+| Y   | Cart Velocity | 0   | Inf |
+| Z   | Pole Angle    | 0   | Inf |
+| K   | Is tumor      | 0   | 1   |
+
+### Variables in our task
+
+- X0, Y0, Z0 - Coordinate of manipulator
+- Angle
+- Distance
+- Radius
+- Time
+
+### Rewards
+
+Since the goal is to keep the pole upright for as long as possible, a reward of `+1` for every step taken,
+including the termination step, is allotted. The threshold for rewards is 475 for v1.
+
+### Starting State
+
+All observations are assigned a uniformly random value in `(-0.05, 0.05)`
+
+### Episode End
+
+The episode ends if any one of the following occurs:
+1. Termination: Pole Angle is greater than ±12°
+2. Termination: Cart Position is greater than ±2.4 (center of the cart reaches the edge of the display)
+3. Truncation: Episode length is greater than 500 (200 for v0)
+
+### Arguments
+
+```python
+gymnasium.make('gym_onkorobot/OnkoRobot-v0')
+```
+
+No additional arguments are currently supported.

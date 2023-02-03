@@ -1,0 +1,8 @@
+[flake8]
+extend-ignore = E501,F401
+#E501 мб надо включить
+exclude =
+    .git,
+    __pycache__,
+    tests
+max-complexity = 10

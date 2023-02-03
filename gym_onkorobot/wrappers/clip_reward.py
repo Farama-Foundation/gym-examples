@@ -1,8 +1,8 @@
-import gym
+import gymnasium
 import numpy as np
 
 
-class ClipReward(gym.RewardWrapper):
+class ClipReward(gymnasium.RewardWrapper):
     def __init__(self, env, min_reward, max_reward):
         super().__init__(env)
         self.min_reward = min_reward

@@ -1,0 +1,9 @@
+Gymnasium~=0.26.3
+setuptools~=60.2.0
+pygame~=2.1.0
+numpy~=1.23.5
+matplotlib==3.6.2
+pytest==7.2.1
+pandas==1.5.3
+pandera==0.13.4
+pre-commit
