@@ -7,6 +7,7 @@ import numpy as np
 from gymnasium.core import RenderFrame, ActType, ObsType
 from gymnasium.spaces import Box, Discrete
 from gym_onkorobot.core.actions import Actions
+from gym_onkorobot.core.grid import VoxelGrid
 from gym_onkorobot.utils.window import Window
 
 ACTION_SHAPE = (3, 1)
@@ -34,6 +35,9 @@ class OnkoRobotEnv(gym.Env):
         self.actions = Actions
         self.action_space = spaces.Discrete(len(self.actions))
 
+        # need to check
+        self.observation = VoxelGrid(point_cloud)
+
         self.reward_range = (0, 1)
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
@@ -59,16 +63,22 @@ class OnkoRobotEnv(gym.Env):
 
         if action == self.actions.down:
             pass
+            # self.observation.DO_SMT
         elif action == self.actions.up:
             pass
+            # self.observation.DO_SMT
         elif action == self.actions.left:
             pass
+            # self.observation.DO_SMT
         elif action == self.actions.right:
             pass
+            # self.observation.DO_SMT
         elif action == self.actions.forward:
             pass
+            # self.observation.DO_SMT
         elif action == self.actions.dose:
             pass
+            # self.observation.DO_SMT
         elif action == self.actions.done:
             raise NotImplemented
         else:
@@ -89,7 +99,11 @@ class OnkoRobotEnv(gym.Env):
             options: Optional[dict] = None,
     ) -> Tuple[ObsType, dict]:
         self.step_count = 0
+        # reset voxelgrid
+        # self.observation.reset..........
 
+    def gen_obs(self):
+        pass
 
     # def _get_obs(self):
     #     # TODO: return point cloud
@@ -149,9 +163,8 @@ class OnkoRobotEnv(gym.Env):
     # def close(self):
     #     if self.window is not None:
     #         self.window.close()
+
     def close(self):
+        # only for visualization
         if self.window is not None:
             self.window.close()
-
-    def gen_obs(self):
-        pass
