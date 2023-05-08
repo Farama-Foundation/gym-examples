@@ -19,7 +19,7 @@ class Window:
         self.title = title
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(projection="3d")
-        X, Y, Z = axes3d.get_test_data(0.05)
+        X, Y, Z = axes3d.get_test_data(0.02)
         self.ax.plot_surface(
             X, Y, Z, edgecolor="royalblue", lw=0.5, rstride=8, cstride=8, alpha=0.3
         )
