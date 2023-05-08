@@ -1,37 +1,31 @@
+import numpy as np
+import random
+
+from gym_onkorobot.core.grid import Grid
+from gym_onkorobot.core.configs import GridConfig, ObservationConfig
+from gym_onkorobot.utils.point import Point
+
+
 class Observation:
     def __init__(self,
-                 grid_size = 10,
-                 dose_power = 1):
-        self.grid_size = grid_size
-        self.dose_power = dose_power
+                 config: ObservationConfig = ObservationConfig(),
+                 grid_config: GridConfig = GridConfig()):
+        self.c = config
+        self.grid = Grid(grid_config)
 
         self.reset()
 
+    def move(self, orientation):
+        nxt = [x+y for x, y in zip(self.agent_pos, orientation)]
+        if self.grid.is_in_borders(Point(*nxt)): #TODO and in surface
+            self.agent_pos = nxt
+
     def dose(self):
-        x = self.agent.pos()[0]
-        y = self.agent.pos()[1]
-        z = self.agent.pos()[2]
-        self._grid[x][y][z][0] += self.dose_power
-        delta = self._grid[x][y][z][1] - self._grid[x][y][z][0]
-        # print(f"D: {delta}")
-        # TODO сделать условие на 20%
-        return 1 if abs(delta) == 0 else 0
-
-    def is_healed(self):
-        healed = True
-        for i in range(self.grid_size):
-          for j in range(self.grid_size):
-            for k in range(self.grid_size):
-              delta = self._grid[i][j][k][1] - self._grid[i][j][k][0]
-              if delta > 0:
-                healed = False
-                return healed
-        return healed
-
+        return self.grid.dose(tuple(self.agent_pos), self.c.DOSE_POWER)
 
     def reset(self):
-        self.agent = Laser()
-        self._grid = gen_obs(self.grid_size)
+        self.agent_pos = self.c.AGENT_START_POS
+        self.grid.reset()
 
     def get_grid(self):
-        return np.asarray(self._grid)
+        return np.asarray(self.grid.encode())
