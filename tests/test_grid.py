@@ -1,12 +1,10 @@
-from gym_onkorobot.core.grid import grid_generator
+from gym_onkorobot.core.generators import plane_generator, grid_generator
 from gym_onkorobot.core.grid import Grid
 from gym_onkorobot.core.observation import Observation
 from gym_onkorobot.core.configs import GridConfig
-from pandas import DataFrame
-from pandera.errors import SchemaError
-import numpy as np
 from pprint import pprint
 import sys
+from gym_onkorobot.utils.window import Window
 
 
 def test_grid_encoder():
@@ -18,14 +16,20 @@ def test_grid_encoder():
 
 
 def test_obs():
-    c = GridConfig(2, 2, 2)
+    c = GridConfig(20, 20, 20, GRID_GEN=plane_generator)
     o = Observation(grid_config=c)
-    print(o.get_grid())
-    pprint(o.grid._infected_cells_count, stream=sys.stderr)
-    pprint(o.grid.is_healed(), stream=sys.stderr)
+    # print(o.get_grid())
+    # pprint(o.grid._infected_cells_count, stream=sys.stderr)
+    # pprint(o.grid.is_healed(), stream=sys.stderr)
     o.dose()
     o.dose()
     o.dose()
     print(o.get_grid())
     pprint(o.grid._infected_cells_count, stream=sys.stderr)
     pprint(o.grid.is_healed(), stream=sys.stderr)
+
+    v, c = o.grid.render_encode()
+   # pprint(v)
+   # pprint(c)
+    w = Window(v, c)
+    w.imshow()

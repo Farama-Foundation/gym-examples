@@ -5,7 +5,7 @@ import gymnasium as gym
 #import pygame
 import numpy as np
 from gymnasium.core import RenderFrame, ActType, ObsType, Env
-from gymnasium.spaces import Box, Discrete, Dict, Space
+from gymnasium.spaces import Box, Discrete, Dict
 
 from gymnasium.utils.env_checker import check_env
 
@@ -16,29 +16,19 @@ from dataclasses import fields
 from gymnasium import spaces
 from gymnasium.utils import seeding
 
+from gym_onkorobot.core.mission import MissionSpace
 from gym_onkorobot.utils.voxel import Voxel
+from gym_onkorobot.utils.window import Window
 from gym_onkorobot.core.actions import Actions
 from gym_onkorobot.core.observation import Observation
 from gym_onkorobot.core.configs import GridConfig
 
 
-class BabyAIMissionSpace(Space[str]):
-    def __init__(self):
-        super().__init__()
-
-    @staticmethod
-    def _gen_mission():
-        return "Heal all infected points."
-
-    def contains(self, x: str):
-        return True
-
-
 class OnkoRobotEnv(Env):
     def __init__(self,
+                 max_steps: int = 2000,
                  grid_config: GridConfig = GridConfig(),
-                 max_steps: int = 1000,
-                 mission_space=BabyAIMissionSpace()):
+                 mission_space: MissionSpace = MissionSpace()):
 
         self.max_steps = max_steps
         self.actions = Actions
@@ -52,7 +42,7 @@ class OnkoRobotEnv(Env):
             low=0,
             high=255,
             shape=(grid_config.X_SHAPE, grid_config.Y_SHAPE, grid_config.Z_SHAPE, len(fields(Voxel))),
-            dtype="uint32",
+            dtype="int64",
         )
 
         self.observation_space = Dict(
@@ -71,10 +61,22 @@ class OnkoRobotEnv(Env):
         terminated = False
         truncated = False
 
-        if action == self.actions.down:
-            self.obs.move([0, 0, -1])
-        elif action == self.actions.up:
-            self.obs.move([0, 0, 1])
+        if action == self.actions.downforward:
+            self.obs.move([-1, 0, -1])
+        elif action == self.actions.downbackward:
+            self.obs.move([1, 0, -1])
+        elif action == self.actions.downleft:
+            self.obs.move([0, -1, -1])
+        elif action == self.actions.downright:
+            self.obs.move([0, 1, -1])
+        elif action == self.actions.upforward:
+            self.obs.move([-1, 0, 1])
+        elif action == self.actions.upbackward:
+            self.obs.move([1, 0, 1])
+        elif action == self.actions.upleft:
+            self.obs.move([0, -1, 1])
+        elif action == self.actions.upright:
+            self.obs.move([0, 1, 1])
         elif action == self.actions.left:
             self.obs.move([0, -1, 0])
         elif action == self.actions.right:
@@ -92,6 +94,7 @@ class OnkoRobotEnv(Env):
 
         if self.obs.grid.is_healed() or self.step_count >= self.max_steps:
             truncated = True
+        #    self.render()
 
         obs = {
             "image": self.obs.get_grid(),
@@ -102,7 +105,9 @@ class OnkoRobotEnv(Env):
         return obs, reward, terminated, truncated, {}
 
     def render(self):
-        pass
+        v, c = self.obs.grid.render_encode()
+        w = Window(v, c)
+        w.imshow()
 
     def reset(self,
               *,

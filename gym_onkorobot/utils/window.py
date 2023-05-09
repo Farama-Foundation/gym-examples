@@ -11,40 +11,19 @@ except ImportError:
 
 
 class Window:
-    """
-    Window to draw a gridworld instance using Matplotlib
-    """
+    def __init__(self,
+                 voxels,
+                 colors):
+        self.plot = plt.figure().add_subplot(projection='3d')
+        plt.xlabel('xlabel')
+        plt.ylabel('ylabel')
+        self.voxels = voxels
+        self.colors = colors
 
-    def __init__(self, title: str):
-        self.title = title
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(projection="3d")
-        X, Y, Z = axes3d.get_test_data(0.02)
-        self.ax.plot_surface(
-            X, Y, Z, edgecolor="royalblue", lw=0.5, rstride=8, cstride=8, alpha=0.3
-        )
-        self.closed = False
+    def imshow(self, path: str = None):
+        self.plot.voxels(self.voxels, facecolors=self.colors, edgecolor='k')
+        if not path:
+            plt.show()
 
-    def show(self, block=True):
-        """
-        Show the window, and start an event loop
-        """
-
-        # If not blocking, trigger interactive mode
-        if not block:
-            plt.ion()
-
-        # Show the plot
-        # In non-interative mode, this enters the matplotlib event loop
-        # In interactive mode, this call does not block
-        plt.show()
-
-    def close(self):
-        plt.close()
-        self.closed = True
-
-
-if __name__ == "__main__":
-    w = Window("test")
-    w.show(block=True)
-    w.close()
+    def animation(self, path: str = None):
+        pass

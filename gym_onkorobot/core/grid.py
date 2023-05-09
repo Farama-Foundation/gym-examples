@@ -1,6 +1,6 @@
 from gym_onkorobot.utils.voxel import Voxel
 from gym_onkorobot.utils.point import Point
-from gym_onkorobot.core.configs import GridConfig
+from gym_onkorobot.core.configs import GridConfig, RenderConfig
 
 from typing import Callable
 from functools import partial as fwrap
@@ -8,35 +8,18 @@ from dataclasses import astuple
 
 import random
 import numpy as np
-
-
-def grid_generator(x: int,
-                   y: int,
-                   z: int,
-                   surface_gen: Callable,
-                   infection_gen: Callable) -> tuple[dict, int]:
-    grid = dict()
-    count = 0
-    for i in range(x):
-        for j in range(y):
-            for k in range(z):  # Уровень облученности, Флаг зараженности
-                p = (i, j, k)
-                infected = infection_gen()
-                v = Voxel(exposure_level=0,
-                          is_infected=infected)
-                if infected != 0:
-                    count += 1
-                grid[p] = v
-    return grid, count
+from matplotlib.colors import to_hex
 
 
 class Grid:
     def __init__(self,
-                 config: GridConfig = GridConfig()):
+                 config: GridConfig = GridConfig(),
+                 render_config: RenderConfig = RenderConfig()):
 
         self.c = config
-        self._grid, self._infected_cells_count = grid_generator(self.c.X_SHAPE, self.c.Y_SHAPE, self.c.Z_SHAPE,
-                                                                self.c.SURFACE_GEN, self.c.INFECTION_GEN)
+        self.rc = render_config
+        self._grid, self._infected_cells_count = self.c.GRID_GEN()
+        self._reward = 1.0 / self._infected_cells_count
 
     def encode(self):
         """Для нейросети нужно представление в виде массива"""
@@ -47,8 +30,37 @@ class Grid:
             for j in range(self.c.Y_SHAPE):
                 grid[i].append([])
                 for k in range(self.c.Z_SHAPE):  # Уровень облученности, Флаг зараженности
-                    grid[i][j].append(astuple(self._grid[(i, j, k)]))
+                    p = self._grid[(i, j, k)]
+                    grid[i][j].append(astuple(p))
         return grid
+
+    def render_encode(self):
+        """Для нейросети нужно представление в виде массива"""
+
+        grid = []
+        colors = []
+        for i in range(self.c.X_SHAPE):
+            grid.append([])
+            colors.append([])
+            for j in range(self.c.Y_SHAPE):
+                grid[i].append([])
+                colors[i].append([])
+                for k in range(self.c.Z_SHAPE):  # Уровень облученности, Флаг зараженности
+                    p = self._grid[(i, j, k)]
+                    grid[i][j].append(None)
+                    colors[i][j].append(None)
+                    bc = bool(p.is_body_cell)
+                    if bc:
+                        colors[i][j][k] = self.rc.BODY_COLOR
+                        grid[i][j][k] = True
+                    #TODO float
+                    if bool(p.is_infected):
+                        colors[i][j][k] = "#FF0000"
+                    if not bool(p.exposure_level - p.is_infected) and p.exposure_level:
+                        colors[i][j][k] = "#0000FF"
+        x,y,z = self.get_start_point()
+        colors[x][y][z] = "#111111"
+        return np.asarray(grid), np.asarray(colors)
 
     def is_healed(self):
         return not bool(self._infected_cells_count)
@@ -56,13 +68,23 @@ class Grid:
     def is_in_borders(self, p: Point):
         return True if 0 <= p.x < self.c.X_SHAPE and 0 <= p.y < self.c.Y_SHAPE and 0 <= p.z < self.c.Z_SHAPE else False
 
+    def is_body_cell(self, p: Point):
+        return True if self._grid[astuple(p)].is_body_cell else False
+
+    def get_start_point(self):
+        for i in range(self.c.Z_SHAPE):
+            p = Point(0, 0, i)
+            if self.is_body_cell(p):
+               # print(f"START: {p}")
+                return astuple(p)
+
     def dose(self, p: tuple, power: int):
         self._grid[p].exposure_level += power
         delta = self._grid[p].exposure_level - self._grid[p].is_infected
         reward = 0
         # TODO сделать условие на 20%
         if abs(delta) == 0:
-            reward = 1
+            reward = self._reward
             self._infected_cells_count -= 1
         return reward
 
@@ -70,5 +92,5 @@ class Grid:
         pass
 
     def reset(self):
-        self._grid, self._infected_cells_count = grid_generator(self.c.X_SHAPE, self.c.Y_SHAPE, self.c.Z_SHAPE,
-                                    self.c.SURFACE_GEN, self.c.INFECTION_GEN)
+        self._grid, self._infected_cells_count = self.c.GRID_GEN()
+        self._reward = 1.0 / self._infected_cells_count

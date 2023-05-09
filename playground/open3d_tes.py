@@ -7,13 +7,22 @@ rng = np.random.default_rng()
 n_pcd = 10 * rng.random((10, 3)) - 10
 pcd = o3d.geometry.PointCloud()
 pcd.points = o3d.utility.Vector3dVector(n_pcd)
-o3d.visualization.draw_geometries([pcd])
 
-voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(input=pcd, voxel_size=0.1)
+black = 111
+R = [black for i in range(10)]
+G = [black for i in range(10)]
+B = [black for i in range(10)]
+rgb = np.asarray([R,G,B])
+rgb_t = np.transpose(rgb)
+pcd.colors = o3d.utility.Vector3dVector(rgb_t.astype(np.float) / 255.0)
+print(np.asarray(pcd.points))
+print(np.asarray(pcd.colors))
+
+voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(input=pcd, voxel_size=1)
 
 octree = o3d.geometry.Octree(max_depth=5)
 octree.create_from_voxel_grid(voxel_grid)
-o3d.visualization.draw_geometries([octree])
+o3d.visualization.draw_geometries([voxel_grid], point_show_normal=True, mesh_show_wireframe=True, mesh_show_back_face=True)
 
 # api для "несуществующей координаты"
 
