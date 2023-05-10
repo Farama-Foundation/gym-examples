@@ -10,9 +10,9 @@ import pandera as pa
 
 @dataclass(frozen=False)
 class GridConfig:
-    X_SHAPE: int = 10
-    Y_SHAPE: int = 10
-    Z_SHAPE: int = 10
+    X_SHAPE: int = 7
+    Y_SHAPE: int = 7
+    Z_SHAPE: int = 7
     SURFACE_GEN: Callable = fwrap(random.randint, 0, 1)
     INFECTION_GEN: Callable = fwrap(random.randint, 0, 1)
     GRID_GEN: Callable = plane_generator

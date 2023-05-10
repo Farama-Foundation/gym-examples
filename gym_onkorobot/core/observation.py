@@ -25,8 +25,8 @@ class Observation:
         return self.grid.dose(tuple(self.agent_pos), self.c.DOSE_POWER)
 
     def reset(self):
-        self.agent_pos = self.grid.get_start_point()
         self.grid.reset()
+        self.agent_pos = self.grid.get_start_point()
 
     def get_grid(self):
         return np.asarray(self.grid.encode())

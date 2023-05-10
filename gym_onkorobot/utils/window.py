@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 
 # Only ask users to install matplotlib if they actually need it
@@ -20,10 +22,12 @@ class Window:
         self.voxels = voxels
         self.colors = colors
 
-    def imshow(self, path: str = None):
+    def imshow(self, mode: str = None):
         self.plot.voxels(self.voxels, facecolors=self.colors, edgecolor='k')
-        if not path:
+        if not mode:
             plt.show()
+        else:
+            plt.savefig("/home/owlengineer/git/gym-onkorobot/imgs/" + str(datetime.datetime.now().timestamp()) + ".png")
 
     def animation(self, path: str = None):
         pass

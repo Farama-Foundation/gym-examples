@@ -21,22 +21,26 @@ from gym_onkorobot.utils.voxel import Voxel
 from gym_onkorobot.utils.window import Window
 from gym_onkorobot.core.actions import Actions
 from gym_onkorobot.core.observation import Observation
-from gym_onkorobot.core.configs import GridConfig
+from gym_onkorobot.core.configs import GridConfig, ObservationConfig
 
 
 class OnkoRobotEnv(Env):
     def __init__(self,
-                 max_steps: int = 2000,
+                 max_steps: int = 1000,
+                 render_mode: str = None,
                  grid_config: GridConfig = GridConfig(),
+                 obs_config: ObservationConfig = ObservationConfig(),
                  mission_space: MissionSpace = MissionSpace()):
 
         self.max_steps = max_steps
+        self.render_mode = render_mode
         self.actions = Actions
         self.action_space = Discrete(len(self.actions))
+        self.reward = 0
 
         self.mission = ""
 
-        self.obs = Observation(grid_config=grid_config,)
+        self.obs = Observation(grid_config=grid_config, config=obs_config)
 
         cloud_space = Box(
             low=0,
@@ -86,7 +90,7 @@ class OnkoRobotEnv(Env):
         elif action == self.actions.backward:
             self.obs.move([1, 0, 0])
         elif action == self.actions.dose:
-            reward = self.obs.dose()
+            self.reward += self.obs.dose()
         # elif action == self.actions.done:
         #    pass
         else:
@@ -94,7 +98,7 @@ class OnkoRobotEnv(Env):
 
         if self.obs.grid.is_healed() or self.step_count >= self.max_steps:
             truncated = True
-        #    self.render()
+            reward = self._reward()
 
         obs = {
             "image": self.obs.get_grid(),
@@ -106,8 +110,9 @@ class OnkoRobotEnv(Env):
 
     def render(self):
         v, c = self.obs.grid.render_encode()
+        c[self.obs.agent_pos[0]][self.obs.agent_pos[1]][self.obs.agent_pos[2]] = "#111111"
         w = Window(v, c)
-        w.imshow()
+        w.imshow(mode=self.render_mode)
 
     def reset(self,
               *,
@@ -115,6 +120,7 @@ class OnkoRobotEnv(Env):
               options: dict | None = None) -> tuple[ObsType, dict]:
         self.obs.reset()
         self.step_count = 0
+        self.reward = 0
 
         obs = {
             "image": self.obs.get_grid(),
@@ -124,4 +130,4 @@ class OnkoRobotEnv(Env):
         return obs, {}
 
     def _reward(self) -> float:
-        return 1 - 0.9 * (self.step_count / self.max_steps)
+        return self.reward * ((self.max_steps - self.step_count) / self.max_steps)

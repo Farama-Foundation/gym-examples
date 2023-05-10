@@ -4,6 +4,12 @@ from gym_onkorobot.utils.point import gen_plane_points
 from typing import Callable
 from dataclasses import astuple
 import numpy as np
+from random import random
+
+
+def generate_infection(infection_percent = 0.3):
+    p = random()
+    return 1 if p > (1-infection_percent) else 0
 
 
 def distance_from_plane(plane: tuple, point: tuple):
@@ -64,7 +70,7 @@ def plane_generator(x: int,
     for i in range(x):
         for j in range(y):
             min_point = (i, j, 0)
-            min_dist = 1
+            min_dist = 10
             for k in range(z):  # Уровень облученности, Флаг зараженности
                 p = (i, j, k)
                 body_cell = False

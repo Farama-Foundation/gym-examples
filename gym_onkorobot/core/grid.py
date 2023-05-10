@@ -43,12 +43,10 @@ class Grid:
             grid.append([])
             colors.append([])
             for j in range(self.c.Y_SHAPE):
-                grid[i].append([])
-                colors[i].append([])
+                grid[i].append([None for l in range(self.c.Z_SHAPE)])
+                colors[i].append([None for l in range(self.c.Z_SHAPE)])
                 for k in range(self.c.Z_SHAPE):  # Уровень облученности, Флаг зараженности
                     p = self._grid[(i, j, k)]
-                    grid[i][j].append(None)
-                    colors[i][j].append(None)
                     bc = bool(p.is_body_cell)
                     if bc:
                         colors[i][j][k] = self.rc.BODY_COLOR
@@ -56,10 +54,8 @@ class Grid:
                     #TODO float
                     if bool(p.is_infected):
                         colors[i][j][k] = "#FF0000"
-                    if not bool(p.exposure_level - p.is_infected) and p.exposure_level:
+                    if p.exposure_level == p.is_infected:
                         colors[i][j][k] = "#0000FF"
-        x,y,z = self.get_start_point()
-        colors[x][y][z] = "#111111"
         return np.asarray(grid), np.asarray(colors)
 
     def is_healed(self):
@@ -69,23 +65,28 @@ class Grid:
         return True if 0 <= p.x < self.c.X_SHAPE and 0 <= p.y < self.c.Y_SHAPE and 0 <= p.z < self.c.Z_SHAPE else False
 
     def is_body_cell(self, p: Point):
-        return True if self._grid[astuple(p)].is_body_cell else False
+        return bool(self._grid[astuple(p)].is_body_cell)
 
     def get_start_point(self):
+        sp = None
+        count = 0
         for i in range(self.c.Z_SHAPE):
             p = Point(0, 0, i)
             if self.is_body_cell(p):
+                count += 1
                # print(f"START: {p}")
-                return astuple(p)
+                sp = astuple(p)
+        #print(f"COUNT: {count}")
+        #print(f"START POINT: {sp}")
+        return sp
 
     def dose(self, p: tuple, power: int):
-        self._grid[p].exposure_level += power
-        delta = self._grid[p].exposure_level - self._grid[p].is_infected
         reward = 0
-        # TODO сделать условие на 20%
-        if abs(delta) == 0:
-            reward = self._reward
+        dosed = bool(self._grid[p].exposure_level)
+        if not dosed:
+            self._grid[p].exposure_level += power
             self._infected_cells_count -= 1
+            reward = self._reward
         return reward
 
     def decode(self):
