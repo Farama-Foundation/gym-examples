@@ -7,11 +7,6 @@ import numpy as np
 from random import random
 
 
-def generate_infection(infection_percent = 0.3):
-    p = random()
-    return 1 if p > (1-infection_percent) else 0
-
-
 def distance_from_plane(plane: tuple, point: tuple):
     # print(plane)
     # print(point)
@@ -85,7 +80,9 @@ def plane_generator(x: int,
                           is_body_cell=body_cell)
                 grid[p] = v
             grid[min_point].is_body_cell = True
-            grid[min_point].is_infected = infection_gen()
+            if count < 6:
+                grid[min_point].is_infected = infection_gen()
             if grid[min_point].is_infected:
                 count += 1
+                #print(f"INF: {min_point}")
     return grid, count

@@ -3,6 +3,7 @@ from pandera import Column
 from typing import Callable
 from functools import partial as fwrap
 from gym_onkorobot.core.generators import plane_generator
+from gym_onkorobot.utils.utils import generate_infection
 
 import random
 import pandera as pa
@@ -10,11 +11,11 @@ import pandera as pa
 
 @dataclass(frozen=False)
 class GridConfig:
-    X_SHAPE: int = 7
-    Y_SHAPE: int = 7
-    Z_SHAPE: int = 7
+    X_SHAPE: int = 15
+    Y_SHAPE: int = 15
+    Z_SHAPE: int = 15
     SURFACE_GEN: Callable = fwrap(random.randint, 0, 1)
-    INFECTION_GEN: Callable = fwrap(random.randint, 0, 1)
+    INFECTION_GEN: Callable = fwrap(generate_infection, 0.03)
     GRID_GEN: Callable = plane_generator
 
     def __post_init__(self):
@@ -29,9 +30,9 @@ class GridConfig:
 @dataclass(frozen=True)
 class ObservationConfig:
     DOSE_POWER: int = 1
-    AGENT_START_POS: tuple[int] = (0, 0, 0)
 
 
 @dataclass(frozen=True)
 class RenderConfig:
     BODY_COLOR: str = "#E3E3E3"
+    VISITED_BODY_COLOR: str = "#F3F3F3"

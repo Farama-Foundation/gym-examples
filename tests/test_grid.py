@@ -1,4 +1,5 @@
-from gym_onkorobot.core.generators import plane_generator, generate_infection
+from gym_onkorobot.core.generators import plane_generator
+from gym_onkorobot.utils.utils import generate_infection
 from gym_onkorobot.core.grid import Grid
 from gym_onkorobot.core.observation import Observation
 from gym_onkorobot.core.configs import GridConfig
@@ -40,17 +41,15 @@ def test_grid_encoder():
 def test_vis():
     c = GridConfig(15, 15, 15, INFECTION_GEN=fwrap(generate_infection, 0.2), GRID_GEN=plane_generator)
     env = OnkoRobotEnv(grid_config=c)
-    episodes = 20
-    for episode in range(1, episodes + 1):
-        state = env.reset()
-        done = False
-        score = 0
-
-        count = 0
-        while not done:
-            action = env.action_space.sample()
-            n_state, reward, done, term, info = env.step(action)
-            score += reward
-            if env.step_count == 100:
-                env.render()
-        print('Episode:{} Score:{}'.format(episode, score))
+    env.render()
+    # episodes = 20
+    # for episode in range(1, episodes + 1):
+    #     state = env.reset()
+    #     done = False
+    #     score = 0
+    #     count = 0
+    #     while not done:
+    #         action = env.action_space.sample()
+    #         n_state, reward, done, term, info = env.step(action)
+    #         score += reward
+    #     print('Episode:{} Score:{}'.format(episode, score))
